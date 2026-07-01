@@ -47,7 +47,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 const SizedBox(height: 12),
                 TextField(controller: descCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder())),
                 const SizedBox(height: 12),
-                TextField(controller: priceCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price', border: OutlineInputBorder())),
+                TextField(controller: priceCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price (MAD)', border: OutlineInputBorder())),
                 const SizedBox(height: 12),
                 CheckboxListTile(
                   title: const Text('Active'),
@@ -95,7 +95,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                 const SizedBox(height: 12),
                 TextField(controller: descCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Description', border: OutlineInputBorder())),
                 const SizedBox(height: 12),
-                TextField(controller: priceCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price', border: OutlineInputBorder())),
+                TextField(controller: priceCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Price (MAD)', border: OutlineInputBorder())),
                 const SizedBox(height: 12),
                 CheckboxListTile(
                   title: const Text('Active'),
@@ -122,6 +122,13 @@ class _ServicesScreenState extends State<ServicesScreen> {
       });
       _load();
     }
+  }
+
+  String _formatPrice(double? price) {
+    if (price == null) return '-';
+    final parts = price.toStringAsFixed(2).split('.');
+    final intPart = parts[0].replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]} ');
+    return '$intPart.${parts[1]} MAD';
   }
 
   Future<void> _delete(Service s) async {
@@ -165,7 +172,7 @@ class _ServicesScreenState extends State<ServicesScreen> {
                           leading: const Icon(Icons.build, color: Colors.blue),
                           title: Text(_services[i].name, style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Text(
-                            '${_services[i].description ?? '-'}  •  \$${(_services[i].price ?? 0).toStringAsFixed(2)}',
+                            '${_services[i].description ?? '-'}  •  ${_formatPrice(_services[i].price)}',
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,

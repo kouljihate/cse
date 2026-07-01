@@ -20,7 +20,7 @@ def admin_required(f):
     return wrapper
 
 
-def _update_task_assignments(service_id, task_ids):
+def _update_task_assignments(service_id, task_ids, performed_by):
     """Assign/unassign tasks to/from a service. Keeps service doc task_ids in sync."""
     db = get_db()
     old_tasks = list(db.tasks.find({"service_id": ObjectId(service_id)}, {"_id": 1}))
@@ -31,15 +31,33 @@ def _update_task_assignments(service_id, task_ids):
     to_remove = old_ids - new_ids
 
     if to_add:
+        tasks = list(db.tasks.find({"_id": {"$in": [ObjectId(tid) for tid in to_add]}}, {"title": 1}))
         db.tasks.update_many(
             {"_id": {"$in": [ObjectId(tid) for tid in to_add]}},
             {"$set": {"service_id": ObjectId(service_id), "updated_at": datetime.now(timezone.utc)}},
         )
+        for task in tasks:
+            AuditService.log(
+                action="update",
+                entity_type="task",
+                entity_id=str(task["_id"]),
+                performed_by=performed_by,
+                description=f"Task '{task.get('title')}' assigned to service",
+            )
     if to_remove:
+        tasks = list(db.tasks.find({"_id": {"$in": [ObjectId(tid) for tid in to_remove]}}, {"title": 1}))
         db.tasks.update_many(
             {"_id": {"$in": [ObjectId(tid) for tid in to_remove]}},
             {"$unset": {"service_id": ""}, "$set": {"updated_at": datetime.now(timezone.utc)}},
         )
+        for task in tasks:
+            AuditService.log(
+                action="update",
+                entity_type="task",
+                entity_id=str(task["_id"]),
+                performed_by=performed_by,
+                description=f"Task '{task.get('title')}' unassigned from service",
+            )
 
     # Keep the service document's task_ids array in sync
     db.services.update_one(
@@ -72,7 +90,7 @@ def create_service():
     service_dict["_id"] = sid
 
     if task_ids:
-        _update_task_assignments(sid, task_ids)
+        _update_task_assignments(sid, task_ids, get_jwt_identity())
 
     AuditService.log(
         action="create",
@@ -131,7 +149,7 @@ def update_service(service_id):
         db.services.update_one({"_id": ObjectId(service_id)}, {"$set": update_dict})
 
     if task_ids is not None:
-        _update_task_assignments(service_id, task_ids)
+        _update_task_assignments(service_id, task_ids, get_jwt_identity())
 
     AuditService.log(
         action="update",

@@ -70,6 +70,14 @@ def create_activity():
         "created_at": now,
     }).inserted_id
 
+    AuditService.log(
+        action="create",
+        entity_type="notification",
+        entity_id=str(notif_id),
+        performed_by=admin_id,
+        description=f"Activity assigned notification sent to user {assigned_to}",
+    )
+
     notify_user(assigned_to, {
         "_id": str(notif_id),
         "type": "activity_assigned",
@@ -276,6 +284,15 @@ def update_activity_status(activity_id):
             "read": False,
             "created_at": now,
         }).inserted_id
+
+        AuditService.log(
+            action="create",
+            entity_type="notification",
+            entity_id=str(nid1),
+            performed_by=identity,
+            description=f"Activity accepted notification sent to admin {admin_id}",
+        )
+
         notify_user(admin_id, {
             "_id": str(nid1),
             "type": "activity_accepted",
@@ -297,6 +314,15 @@ def update_activity_status(activity_id):
             "read": False,
             "created_at": now,
         }).inserted_id
+
+        AuditService.log(
+            action="create",
+            entity_type="notification",
+            entity_id=str(nid2),
+            performed_by=identity,
+            description=f"Activity completed notification sent to admin {admin_id}",
+        )
+
         notify_user(admin_id, {
             "_id": str(nid2),
             "type": "activity_completed",
@@ -346,10 +372,18 @@ def list_notifications():
 def mark_notifications_read():
     db = get_db()
     identity = get_jwt_identity()
-    db.notifications.update_many(
+    result = db.notifications.update_many(
         {"user_id": ObjectId(identity), "read": False},
         {"$set": {"read": True}},
     )
+    if result.modified_count > 0:
+        AuditService.log(
+            action="update",
+            entity_type="notification",
+            entity_id="",
+            performed_by=identity,
+            description=f"{result.modified_count} notifications marked as read",
+        )
     return jsonify({"ok": True}), 200
 
 

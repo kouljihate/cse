@@ -21,19 +21,20 @@ def admin_required(f):
 @jwt_required()
 @admin_required
 def get_logs():
-    entity_type = request.args.get("entity_type")
+    raw = request.args.get("entity_type", "")
+    entity_types = [t.strip() for t in raw.split(",") if t.strip()] if raw else None
     entity_id = request.args.get("entity_id")
     limit = int(request.args.get("limit", 100))
     skip = int(request.args.get("skip", 0))
 
     logs = AuditService.get_logs(
-        entity_type=entity_type,
+        entity_types=entity_types,
         entity_id=entity_id,
         limit=limit,
         skip=skip,
     )
     total = AuditService.count_logs(
-        entity_type=entity_type,
+        entity_types=entity_types,
         entity_id=entity_id,
     )
 

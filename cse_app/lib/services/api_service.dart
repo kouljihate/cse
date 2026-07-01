@@ -140,15 +140,8 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  Future<List<dynamic>> getTasks({String? status, String? priority, String? affairId, String? serviceId}) async {
-    final params = <String, String>{};
-    if (status != null) params['status'] = status;
-    if (priority != null) params['priority'] = priority;
-    if (affairId != null) params['affair_id'] = affairId;
-    if (serviceId != null) params['service_id'] = serviceId;
-
-    final uri = Uri.parse('$baseUrl/tasks/').replace(queryParameters: params.isNotEmpty ? params : null);
-    final res = await http.get(uri, headers: _headers);
+  Future<List<dynamic>> getTasks() async {
+    final res = await http.get(Uri.parse('$baseUrl/tasks/'), headers: _headers);
     return jsonDecode(res.body);
   }
 

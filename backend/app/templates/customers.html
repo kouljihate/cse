@@ -116,6 +116,7 @@
 
 {% block extra_scripts %}
 <script>
+let customersData = [];
 document.addEventListener('DOMContentLoaded', () => {
     loadCustomers();
 });
@@ -127,6 +128,7 @@ async function loadCustomers() {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">{{ _('no_customers') }}</td></tr>';
         return;
     }
+    customersData = data;
     tbody.innerHTML = data.map(c => `
         <tr>
             <td><a href="/customers/${c._id}" class="fw-bold text-decoration-none">${c.full_name}</a></td>
@@ -213,10 +215,13 @@ async function handleCustomerSubmit(e) {
 }
 
 async function deleteCustomer(id) {
-    if (!confirm('{{ _('confirm_delete') }}')) return;
-    await apiRequest(`/customers/${id}`, { method: 'DELETE' });
-    showToast('{{ _('delete') }}');
-    loadCustomers();
+    const c = customersData.find(x => x._id === id);
+    showDeleteModal('Customer', c ? c.full_name : '', () => {
+        apiRequest(`/customers/${id}`, { method: 'DELETE' }).then(() => {
+            showToast('{{ _('delete') }}');
+            loadCustomers();
+        });
+    });
 }
 
 // ── Bulk Import ─────────────────────────────────────

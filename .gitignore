@@ -9,3 +9,5 @@ cse_app/.flutter-plugins
 cse_app/.flutter-plugins-dependencies
 cse_app/build/
 cse_app/.flutter_tool/
+tests/mongodb/
+tests/*.zip

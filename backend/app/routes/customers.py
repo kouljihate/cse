@@ -228,6 +228,15 @@ def delete_customer(customer_id):
     if not customer:
         return jsonify({"error": "Customer not found"}), 404
 
+    affairs = list(db.affairs.find({"customer_id": ObjectId(customer_id)}))
+    for affair in affairs:
+        AuditService.log(
+            action="delete",
+            entity_type="affair",
+            entity_id=str(affair["_id"]),
+            performed_by=get_jwt_identity(),
+            description=f"Affair '{affair.get('name')}' deleted (customer cascade)",
+        )
     db.affairs.delete_many({"customer_id": ObjectId(customer_id)})
     db.users.delete_one({"_id": ObjectId(customer_id)})
 

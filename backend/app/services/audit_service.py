@@ -30,13 +30,16 @@ class AuditService:
     @staticmethod
     def get_logs(
         entity_type: Optional[str] = None,
+        entity_types: Optional[list[str]] = None,
         entity_id: Optional[str] = None,
         limit: int = 100,
         skip: int = 0,
     ):
         db = get_db()
         query = {}
-        if entity_type:
+        if entity_types:
+            query["entity_type"] = {"$in": entity_types}
+        elif entity_type:
             query["entity_type"] = entity_type
         if entity_id:
             query["entity_id"] = ObjectId(entity_id) if ObjectId.is_valid(entity_id) else entity_id
@@ -65,10 +68,12 @@ class AuditService:
         return list(db.audit_logs.aggregate(pipeline))
 
     @staticmethod
-    def count_logs(entity_type: Optional[str] = None, entity_id: Optional[str] = None) -> int:
+    def count_logs(entity_type: Optional[str] = None, entity_types: Optional[list[str]] = None, entity_id: Optional[str] = None) -> int:
         db = get_db()
         query = {}
-        if entity_type:
+        if entity_types:
+            query["entity_type"] = {"$in": entity_types}
+        elif entity_type:
             query["entity_type"] = entity_type
         if entity_id:
             query["entity_id"] = ObjectId(entity_id) if ObjectId.is_valid(entity_id) else entity_id

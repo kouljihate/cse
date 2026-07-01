@@ -52,7 +52,7 @@
                         <textarea name="description" class="form-control" rows="2"></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">{{ _('service_price') }}</label>
+                        <label class="form-label">{{ _('service_price') }} (MAD)</label>
                         <input type="number" name="price" class="form-control" step="0.01" min="0">
                     </div>
                     <div class="mb-3 form-check">
@@ -95,6 +95,7 @@
 {% block extra_scripts %}
 <script>
 let editingServiceId = null;
+let servicesData = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     loadServices();
@@ -194,6 +195,7 @@ async function loadServices() {
             }
         });
     }
+    servicesData = data;
     tbody.innerHTML = data.map(s => {
         const st = serviceTasksCache[s._id] || [];
         const taskCount = (s.task_ids || []).length;
@@ -201,7 +203,7 @@ async function loadServices() {
         <tr>
             <td><strong>${s.name}</strong></td>
             <td>${s.description || '-'}</td>
-            <td>${s.price != null ? '$' + Number(s.price).toFixed(2) : '-'}</td>
+            <td>${formatPrice(s.price)}</td>
             <td><span class="badge bg-${s.is_active ? 'success' : 'danger'}">${s.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
             <td><span class="badge bg-info" style="cursor:pointer" onclick="toggleServiceTasks('${s._id}')">${taskCount} ${taskCount === 1 ? '{{ _('task') }}' : '{{ _('tasks') }}'}</span></td>
             <td><small class="text-muted">${formatDate(s.created_at)}</small></td>
@@ -294,10 +296,13 @@ async function handleServiceSubmit(e) {
 }
 
 async function deleteService(id) {
-    if (!confirm('{{ _('confirm_delete') }}')) return;
-    await apiRequest(`/services/${id}`, { method: 'DELETE' });
-    showToast('{{ _('delete') }}');
-    loadServices();
+    const s = servicesData.find(x => x._id === id);
+    showDeleteModal('Service', s ? s.name : '', () => {
+        apiRequest(`/services/${id}`, { method: 'DELETE' }).then(() => {
+            showToast('{{ _('delete') }}');
+            loadServices();
+        });
+    });
 }
 </script>
 {% endblock %}

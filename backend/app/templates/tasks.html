@@ -8,27 +8,7 @@
         {% if user.role == 'customer' %}{{ _('my_tasks') }}{% else %}{{ _('task_list') }}{% endif %}
     </h4>
     <div class="d-flex gap-2">
-        <select id="filterStatus" class="form-select form-select-sm" style="width:auto;" onchange="loadTasks()">
-            <option value="">{{ _('filter_by_status') }}</option>
-            <option value="pending">{{ _('pending') }}</option>
-            <option value="in_progress">{{ _('in_progress') }}</option>
-            <option value="completed">{{ _('completed') }}</option>
-            <option value="cancelled">{{ _('cancelled') }}</option>
-        </select>
-        <select id="filterPriority" class="form-select form-select-sm" style="width:auto;" onchange="loadTasks()">
-            <option value="">{{ _('filter_by_priority') }}</option>
-            <option value="low">{{ _('low') }}</option>
-            <option value="medium">{{ _('medium') }}</option>
-            <option value="high">{{ _('high') }}</option>
-            <option value="critical">{{ _('critical') }}</option>
-        </select>
         {% if user.role == 'admin' %}
-        <select id="filterAffairTasks" class="form-select form-select-sm" style="width:auto;" onchange="loadTasks()">
-            <option value="">{{ _('filter_by_affair') }}</option>
-        </select>
-        <select id="filterServiceTasks" class="form-select form-select-sm" style="width:auto;" onchange="loadTasks()">
-            <option value="">{{ _('filter_by_service') }}</option>
-        </select>
         <a href="/tasks/create" class="btn btn-cse btn-sm">
             <i class="bi bi-plus-lg me-1"></i>{{ _('create_task') }}
         </a>
@@ -43,18 +23,13 @@
                 <thead class="table-light">
                     <tr>
                         <th>{{ _('task_title') }}</th>
-                        <th>{{ _('affair') }}</th>
-                        <th>{{ _('service') }}</th>
-                        <th>{{ _('assigned_to') }}</th>
-                        <th>{{ _('priority') }}</th>
-                        <th>{{ _('status') }}</th>
-                        <th>{{ _('due_date') }}</th>
+                        <th>{{ _('task_description') }}</th>
                         <th>{{ _('actions') }}</th>
                     </tr>
                 </thead>
                 <tbody id="tasksTableBody">
                     <tr>
-                        <td colspan="8" class="text-center text-muted">{{ _('loading') }}</td>
+                        <td colspan="3" class="text-center text-muted">{{ _('loading') }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -70,31 +45,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div class="row mb-3">
-                    <div class="col-md-8">
-                        <h6>{{ _('task_description') }}</h6>
-                        <p id="detailDescription" class="text-muted">-</p>
-                    </div>
-                    <div class="col-md-4">
-                        <h6>{{ _('status') }}</h6>
-                        <p id="detailStatus">-</p>
-                        <h6>{{ _('priority') }}</h6>
-                        <p id="detailPriority">-</p>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <h6>{{ _('affair') }}</h6>
-                        <p id="detailAffair">-</p>
-                    </div>
-                    <div class="col-md-4">
-                        <h6>{{ _('assigned_to') }}</h6>
-                        <p id="detailAssigned">-</p>
-                    </div>
-                    <div class="col-md-4">
-                        <h6>{{ _('due_date') }}</h6>
-                        <p id="detailDue">-</p>
-                    </div>
+                <div class="mb-3">
+                    <h6>{{ _('task_description') }}</h6>
+                    <p id="detailDescription" class="text-muted">-</p>
                 </div>
                 <hr>
                 <h6>{{ _('task_history') }}</h6>
@@ -123,55 +76,26 @@
 {% block extra_scripts %}
 <script>
 let currentTaskId = null;
+let tasksData = [];
 
-document.addEventListener('DOMContentLoaded', async () => {
-    {% if user.role == 'admin' %}
-    const affairs = await apiRequest('/affairs/');
-    if (affairs) {
-        const sel = document.getElementById('filterAffairTasks');
-        affairs.forEach(a => {
-            sel.insertAdjacentHTML('beforeend', `<option value="${a._id}">${a.name}</option>`);
-        });
-    }
-    const services = await apiRequest('/services/');
-    if (services) {
-        const sel = document.getElementById('filterServiceTasks');
-        services.forEach(s => {
-            sel.insertAdjacentHTML('beforeend', `<option value="${s._id}">${s.name}</option>`);
-        });
-    }
-    {% endif %}
+document.addEventListener('DOMContentLoaded', () => {
     loadTasks();
 });
 
 async function loadTasks() {
-    const params = new URLSearchParams();
-    const status = document.getElementById('filterStatus')?.value;
-    const priority = document.getElementById('filterPriority')?.value;
-    const affairId = document.getElementById('filterAffairTasks')?.value;
-    const serviceId = document.getElementById('filterServiceTasks')?.value;
-    if (status) params.set('status', status);
-    if (priority) params.set('priority', priority);
-    if (affairId) params.set('affair_id', affairId);
-    if (serviceId) params.set('service_id', serviceId);
-
-    const data = await apiRequest(`/tasks/?${params}`);
+    const data = await apiRequest('/tasks/');
     const tbody = document.getElementById('tasksTableBody');
 
     if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">{{ _('no_tasks') }}</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">{{ _('no_tasks') }}</td></tr>';
         return;
     }
 
+    tasksData = data;
     tbody.innerHTML = data.map(t => `
         <tr style="cursor:pointer" onclick="openDetail('${t._id}')">
             <td><strong>${t.title}</strong></td>
-            <td>${t.affair_name || '-'}</td>
-            <td>${t.service_name || '-'}</td>
-            <td>${t.assigned_to_name || '-'}</td>
-            <td><span class="badge bg-${t.priority === 'critical' ? 'danger' : t.priority === 'high' ? 'warning' : t.priority === 'medium' ? 'primary' : 'secondary'}">${t.priority}</span></td>
-            <td><span class="badge bg-${t.status === 'completed' ? 'success' : t.status === 'in_progress' ? 'info' : t.status === 'cancelled' ? 'danger' : 'warning'}">${t.status.replace('_', ' ')}</span></td>
-            <td>${formatDate(t.due_date)}</td>
+            <td class="text-muted text-truncate" style="max-width:300px">${t.description || '-'}</td>
             <td class="table-actions" onclick="event.stopPropagation()">
                 <button class="btn btn-sm btn-outline-info" onclick="openDetail('${t._id}')" title="{{ _('task_detail') }}">
                     <i class="bi bi-eye"></i>
@@ -193,25 +117,12 @@ async function openDetail(id) {
 
     document.getElementById('detailTitle').textContent = t.title;
     document.getElementById('detailDescription').textContent = t.description || '{{ _('no_description') }}';
-    document.getElementById('detailAffair').textContent = t.affair_name || '-';
-    document.getElementById('detailAssigned').textContent = t.assigned_to_name || '-';
-    document.getElementById('detailDue').textContent = formatDate(t.due_date) || '-';
-
     const statusMap = {
         pending: '<span class="badge bg-warning">{{ _('pending') }}</span>',
         in_progress: '<span class="badge bg-info">{{ _('in_progress') }}</span>',
         completed: '<span class="badge bg-success">{{ _('completed') }}</span>',
         cancelled: '<span class="badge bg-danger">{{ _('cancelled') }}</span>',
     };
-    const priorityMap = {
-        low: '<span class="badge bg-secondary">{{ _('low') }}</span>',
-        medium: '<span class="badge bg-primary">{{ _('medium') }}</span>',
-        high: '<span class="badge bg-warning">{{ _('high') }}</span>',
-        critical: '<span class="badge bg-danger">{{ _('critical') }}</span>',
-    };
-
-    document.getElementById('detailStatus').innerHTML = statusMap[t.status] || t.status;
-    document.getElementById('detailPriority').innerHTML = priorityMap[t.priority] || t.priority;
 
     const logs = await apiRequest('/audit/logs?entity_type=task&entity_id=' + id);
     const historyEl = document.getElementById('detailHistory');
@@ -243,10 +154,13 @@ async function quickStatus(status) {
 }
 
 async function deleteTask(id) {
-    if (!confirm('{{ _('confirm_delete') }}')) return;
-    await apiRequest(`/tasks/${id}`, { method: 'DELETE' });
-    showToast('{{ _('delete') }}');
-    loadTasks();
+    const t = tasksData.find(x => x._id === id);
+    showDeleteModal('Task', t ? t.title : '', () => {
+        apiRequest(`/tasks/${id}`, { method: 'DELETE' }).then(() => {
+            showToast('{{ _('delete') }}');
+            loadTasks();
+        });
+    });
 }
 </script>
 {% endblock %}

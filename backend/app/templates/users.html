@@ -5,6 +5,9 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><i class="bi bi-people me-2"></i>{{ _('user_list') }}</h4>
+    <button class="btn btn-cse" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg me-1"></i>{{ _('create_user') }}
+    </button>
 </div>
 
 <div class="card">
@@ -28,14 +31,69 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">{{ _('create_user') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="userForm" onsubmit="return handleUserSubmit(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="editUserId">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('full_name') }} *</label>
+                        <input type="text" name="full_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('username') }} *</label>
+                        <input type="text" name="username" class="form-control" required minlength="3">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('email') }} *</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('password') }} <span id="passwordLabel" class="text-muted">*</span></label>
+                        <input type="password" name="password" class="form-control" id="passwordInput" minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('phone') }}</label>
+                        <input type="text" name="phone" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('role') }} *</label>
+                        <select name="role" class="form-select" required>
+                            <option value="admin">{{ _('admin') }}</option>
+                            <option value="employee">{{ _('employee') }}</option>
+                            <option value="customer">{{ _('customer') }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="userIsActive" checked>
+                        <label class="form-check-label" for="userIsActive">{{ _('active') }}</label>
+                    </div>
+                    <div id="userError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('cancel') }}</button>
+                    <button type="submit" class="btn btn-cse">{{ _('save') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+let usersData = [];
 loadUsers();
 
 async function loadUsers() {
     const data = await apiRequest('/users/');
+    usersData = data;
     const tbody = document.getElementById('usersTableBody');
     if (!data || data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">{{ _('no_users') }}</td></tr>';
@@ -49,19 +107,92 @@ async function loadUsers() {
             <td><span class="badge bg-${u.role === 'admin' ? 'danger' : u.role === 'employee' ? 'primary' : 'secondary'}">${u.role}</span></td>
             <td><span class="badge bg-${u.is_active ? 'success' : 'danger'}">${u.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
             <td class="table-actions">
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u._id}')"><i class="bi bi-trash"></i></button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editUser('${u._id}')" title="{{ _('edit') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u._id}')" title="{{ _('delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
             </td>
         </tr>
     `).join('');
 }
 
 async function deleteUser(id) {
-    if (!confirm('{{ _('confirm_delete') }}')) return;
-    const data = await apiRequest(`/users/${id}`, { method: 'DELETE' });
-    if (data.message) {
-        showToast('{{ _('delete') }}');
-        loadUsers();
+    const u = usersData.find(x => x._id === id);
+    showDeleteModal('User', u ? u.full_name : '', () => {
+        apiRequest(`/users/${id}`, { method: 'DELETE' }).then(data => {
+            if (data.message) {
+                showToast('{{ _('delete') }}');
+                loadUsers();
+            }
+        });
+    });
+}
+
+function openCreateModal() {
+    document.getElementById('userModalTitle').textContent = '{{ _('create_user') }}';
+    document.getElementById('editUserId').value = '';
+    document.getElementById('userForm').reset();
+    document.getElementById('passwordInput').required = true;
+    document.getElementById('passwordLabel').style.display = 'inline';
+    document.getElementById('userForm').querySelector('[name=is_active]').checked = true;
+    document.getElementById('userError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('userModal')).show();
+}
+
+async function editUser(id) {
+    const data = await apiRequest('/users/' + id);
+    if (!data) return;
+    document.getElementById('userModalTitle').textContent = '{{ _('edit') }}';
+    document.getElementById('editUserId').value = id;
+    document.getElementById('userForm').querySelector('[name=full_name]').value = data.full_name || '';
+    document.getElementById('userForm').querySelector('[name=username]').value = data.username || '';
+    document.getElementById('userForm').querySelector('[name=email]').value = data.email || '';
+    document.getElementById('passwordInput').required = false;
+    document.getElementById('passwordLabel').style.display = 'none';
+    document.getElementById('userForm').querySelector('[name=phone]').value = data.phone || '';
+    document.getElementById('userForm').querySelector('[name=role]').value = data.role || 'customer';
+    document.getElementById('userForm').querySelector('[name=is_active]').checked = data.is_active !== false;
+    document.getElementById('userError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('userModal')).show();
+}
+
+async function handleUserSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const errorEl = document.getElementById('userError');
+    errorEl.classList.add('d-none');
+
+    const editId = document.getElementById('editUserId').value;
+    const payload = {
+        full_name: form.full_name.value,
+        username: form.username.value,
+        email: form.email.value,
+        phone: form.phone.value || null,
+        role: form.role.value,
+        is_active: form.is_active.checked,
+    };
+    if (editId) {
+        if (form.password.value) payload.password = form.password.value;
+        const data = await apiRequest('/users/' + editId, { method: 'PUT', body: JSON.stringify(payload) });
+        if (!data || data.error) {
+            errorEl.textContent = data ? data.error : 'Error';
+            errorEl.classList.remove('d-none');
+            return;
+        }
+    } else {
+        payload.password = form.password.value;
+        const data = await apiRequest('/users/', { method: 'POST', body: JSON.stringify(payload) });
+        if (!data || data.error) {
+            errorEl.textContent = data ? data.error : 'Username or email already exists';
+            errorEl.classList.remove('d-none');
+            return;
+        }
     }
+    bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+    showToast('{{ _('save') }}');
+    loadUsers();
 }
 </script>
 {% endblock %}

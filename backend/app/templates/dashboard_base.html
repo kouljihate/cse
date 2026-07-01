@@ -46,11 +46,6 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-white {{ 'active' if active_page == 'customers' }}" href="/customers" data-bs-dismiss="offcanvas">
-                        <i class="bi bi-person-badge me-2"></i>{{ _('customers') }}
-                    </a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link text-white {{ 'active' if active_page == 'users' }}" href="/users" data-bs-dismiss="offcanvas">
                         <i class="bi bi-people me-2"></i>{{ _('users') }}
                     </a>
@@ -123,11 +118,6 @@
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if active_page == 'messaging' }}" href="/messaging">
                     <i class="bi bi-chat-dots me-2"></i>{{ _('messaging') }}
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {{ 'active' if active_page == 'customers' }}" href="/customers">
-                    <i class="bi bi-person-badge me-2"></i>{{ _('customers') }}
                 </a>
             </li>
             <li class="nav-item">
@@ -213,6 +203,25 @@
     </div>
 </div>
 
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title text-danger" id="deleteModalTitle"><i class="bi bi-exclamation-triangle me-2"></i>{{ _('confirm_delete') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="mb-1">Are you want to delete the</p>
+                <p id="deleteModalEntityName" class="fw-bold text-danger mb-0" style="font-size:1.1rem"></p>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('cancel') }}</button>
+                <button type="button" class="btn btn-danger" id="deleteConfirmBtn" onclick="executeDelete()"><i class="bi bi-trash me-1"></i>{{ _('delete') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="headerSendModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -246,10 +255,30 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_scripts %}
 <script>
+let deleteCallback = null;
+
+function showDeleteModal(entityType, entityName, cb) {
+    document.getElementById('deleteModalTitle').innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Delete ' + entityType;
+    document.getElementById('deleteModalEntityName').textContent = entityType + ': ' + (entityName || '');
+    deleteCallback = cb;
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function formatPrice(val) {
+    if (val == null) return '-';
+    var parts = Number(val).toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return parts.join('.') + ' MAD';
+}
+
+function executeDelete() {
+    bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
+    if (deleteCallback) deleteCallback();
+    deleteCallback = null;
+}
+
 async function loadNotifications() {
     const data = await apiRequest('/activities/notifications');
     const list = document.getElementById('notificationList');

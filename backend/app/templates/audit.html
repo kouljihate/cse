@@ -13,15 +13,29 @@
 <div class="card">
     <div class="card-body">
         <div class="mb-3">
-            <div class="row g-2">
-                <div class="col-auto">
-                    <select id="filterEntity" class="form-select" onchange="loadAudit()">
-                        <option value="">{{ _('all') }}</option>
-                        <option value="user">{{ _('users') }}</option>
-                        <option value="affair">{{ _('affairs') }}</option>
-                        <option value="task">{{ _('tasks') }}</option>
-                    </select>
-                </div>
+            <div id="filterCheckboxes" class="d-flex flex-wrap gap-3 align-items-center">
+                <label class="form-label mb-0 me-2">{{ _('entity_type') }}:</label>
+                <label class="form-check-label me-2">
+                    <input type="checkbox" class="form-check-input" value="service" checked onchange="loadAudit()"> {{ _('service') }}
+                </label>
+                <label class="form-check-label me-2">
+                    <input type="checkbox" class="form-check-input" value="task" checked onchange="loadAudit()"> {{ _('task') }}
+                </label>
+                <label class="form-check-label me-2">
+                    <input type="checkbox" class="form-check-input" value="activity" checked onchange="loadAudit()"> {{ _('activity') }}
+                </label>
+                <label class="form-check-label me-2">
+                    <input type="checkbox" class="form-check-input" value="notification" checked onchange="loadAudit()"> {{ _('notification') }}
+                </label>
+                <label class="form-check-label me-2">
+                    <input type="checkbox" class="form-check-input" value="affair" checked onchange="loadAudit()"> {{ _('affairs') }}
+                </label>
+                <label class="form-check-label me-2">
+                    <input type="checkbox" class="form-check-input" value="customer" checked onchange="loadAudit()"> {{ _('customers') }}
+                </label>
+                <label class="form-check-label me-2">
+                    <input type="checkbox" class="form-check-input" value="user" checked onchange="loadAudit()"> {{ _('users') }}
+                </label>
             </div>
         </div>
         <div class="table-responsive">
@@ -49,9 +63,10 @@
 loadAudit();
 
 async function loadAudit() {
-    const entityType = document.getElementById('filterEntity').value;
+    const all = [...document.querySelectorAll('#filterCheckboxes input[type=checkbox]')];
+    const checked = all.filter(cb => cb.checked).map(cb => cb.value);
     const params = new URLSearchParams();
-    if (entityType) params.set('entity_type', entityType);
+    if (checked.length > 0 && checked.length < all.length) params.set('entity_type', checked.join(','));
     params.set('limit', '200');
 
     const data = await apiRequest(`/audit/logs?${params}`);

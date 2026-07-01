@@ -14,7 +14,6 @@ class TasksScreen extends StatefulWidget {
 class _TasksScreenState extends State<TasksScreen> {
   List<Task> _tasks = [];
   bool _loading = true;
-  String? _statusFilter;
 
   @override
   void initState() {
@@ -25,7 +24,7 @@ class _TasksScreenState extends State<TasksScreen> {
   Future<void> _loadTasks() async {
     setState(() => _loading = true);
     try {
-      final data = await ApiService().getTasks(status: _statusFilter);
+      final data = await ApiService().getTasks();
       setState(() => _tasks = data.map((j) => Task.fromJson(j)).toList());
     } catch (_) {}
     setState(() => _loading = false);
@@ -44,19 +43,6 @@ class _TasksScreenState extends State<TasksScreen> {
       appBar: AppBar(
         title: const Text('Tasks'),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.filter_list),
-            onSelected: (s) {
-              _statusFilter = s == 'all' ? null : s;
-              _loadTasks();
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'all', child: Text('All')),
-              const PopupMenuItem(value: 'pending', child: Text('Pending')),
-              const PopupMenuItem(value: 'in_progress', child: Text('In Progress')),
-              const PopupMenuItem(value: 'completed', child: Text('Completed')),
-            ],
-          ),
           if (auth.isAdmin)
             IconButton(
               icon: const Icon(Icons.add),
@@ -78,22 +64,15 @@ class _TasksScreenState extends State<TasksScreen> {
                       itemCount: _tasks.length,
                       itemBuilder: (_, i) => Card(
                         child: ListTile(
-                          leading: _priorityIcon(_tasks[i].priority),
                           title: Text(_tasks[i].title, style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (_tasks[i].assignedToName != null)
-                                Text('Assigned to: ${_tasks[i].assignedToName}'),
-                              if (_tasks[i].affairName != null)
-                                Text('Affair: ${_tasks[i].affairName}'),
-                              if (_tasks[i].serviceName != null)
-                                Text('Service: ${_tasks[i].serviceName}'),
                               Text('Status: ${_tasks[i].status}'),
                             ],
                           ),
                           trailing: _statusChip(_tasks[i].status),
-                          isThreeLine: true,
+                          isThreeLine: false,
                           onTap: () => _showTaskDialog(_tasks[i], auth),
                         ),
                       ),
@@ -116,16 +95,8 @@ class _TasksScreenState extends State<TasksScreen> {
               const SizedBox(height: 8),
               Text(task.description!),
             ],
-            const SizedBox(height: 16),
-            Row(children: [
-              _priorityIcon(task.priority),
-              const SizedBox(width: 8),
-              Text('Priority: ${task.priority}'),
-            ]),
             const SizedBox(height: 8),
-            if (task.serviceName != null) Text('Service: ${task.serviceName}'),
-            const SizedBox(height: 8),
-            if (task.dueDate != null) Text('Due: ${task.dueDate}'),
+            Text('Status: ${task.status}'),
             const SizedBox(height: 16),
             if (auth.isAdmin || auth.isEmployee)
               Wrap(
@@ -144,16 +115,6 @@ class _TasksScreenState extends State<TasksScreen> {
         ),
       ),
     );
-  }
-
-  Widget _priorityIcon(String priority) {
-    final color = switch (priority) {
-      'critical' => Colors.red,
-      'high' => Colors.orange,
-      'medium' => Colors.blue,
-      _ => Colors.grey,
-    };
-    return Icon(Icons.flag, color: color);
   }
 
   Widget _statusChip(String status) {
