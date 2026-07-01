@@ -125,12 +125,12 @@ def tasks_report():
     )
 
 
-@reports_bp.route("/affairs", methods=["GET"])
+@reports_bp.route("/services", methods=["GET"])
 @jwt_required()
 @admin_required
-def affairs_report():
+def services_report():
     db = get_db()
-    affairs = list(db.affairs.find().sort("name", 1))
+    services = list(db.services.find().sort("name", 1))
 
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4)
@@ -138,20 +138,22 @@ def affairs_report():
     elements = []
 
     elements.append(Paragraph("Cabinet Services Express", styles["Title"]))
-    elements.append(Paragraph("Affairs Report", styles["Heading2"]))
+    elements.append(Paragraph("Services Report", styles["Heading2"]))
     elements.append(Paragraph(f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}", styles["Normal"]))
     elements.append(Spacer(1, 10 * mm))
 
-    data = [["Name", "Type", "Customer ID", "Status"]]
-    for a in affairs:
+    data = [["Name", "Description", "Price (MAD)", "Status"]]
+    for s in services:
+        price = s.get("price")
+        price_str = f"{price:,.2f}" if price is not None else "-"
         data.append([
-            a.get("name", ""),
-            a.get("affair_type", ""),
-            str(a.get("customer_id", "")),
-            "Active",
+            s.get("name", ""),
+            s.get("description", "") or "-",
+            price_str,
+            "Active" if s.get("is_active") else "Inactive",
         ])
 
-    table = Table(data, colWidths=[140, 80, 140, 60])
+    table = Table(data, colWidths=[120, 180, 80, 60])
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a237e")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -171,5 +173,68 @@ def affairs_report():
         buf,
         mimetype="application/pdf",
         as_attachment=True,
-        download_name=f"affairs_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+        download_name=f"services_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+    )
+
+
+@reports_bp.route("/users", methods=["GET"])
+@jwt_required()
+@admin_required
+def users_report():
+    db = get_db()
+    role_filter = request.args.get("role")
+    status_filter = request.args.get("status")
+
+    query = {}
+    if role_filter:
+        query["role"] = role_filter
+    if status_filter == "active":
+        query["is_active"] = True
+    elif status_filter == "inactive":
+        query["is_active"] = False
+
+    users = list(db.users.find(query).sort("created_at", -1))
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph("Cabinet Services Express", styles["Title"]))
+    elements.append(Paragraph("Users Report", styles["Heading2"]))
+    elements.append(Paragraph(f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}", styles["Normal"]))
+    elements.append(Spacer(1, 10 * mm))
+
+    data = [["Full Name", "Username", "Email", "Phone", "Role", "Status"]]
+    for u in users:
+        data.append([
+            u.get("full_name", ""),
+            u.get("username", ""),
+            u.get("email", ""),
+            u.get("phone", "") or "-",
+            u.get("role", ""),
+            "Active" if u.get("is_active") else "Inactive",
+        ])
+
+    table = Table(data, colWidths=[80, 60, 100, 80, 60, 60])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a237e")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#e8eaf6")]),
+    ]))
+    elements.append(table)
+
+    doc.build(elements)
+    buf.seek(0)
+
+    return send_file(
+        buf,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"users_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
     )

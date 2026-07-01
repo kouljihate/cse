@@ -26,9 +26,14 @@ def admin_required(f):
 def list_users():
     db = get_db()
     role = request.args.get("role")
+    status = request.args.get("status")
     query = {}
     if role:
         query["role"] = role
+    if status == "active":
+        query["is_active"] = True
+    elif status == "inactive":
+        query["is_active"] = False
     users = list(db.users.find(query).sort("created_at", -1))
     return jsonify([UserResponse(**u).model_dump(by_alias=True) for u in users]), 200
 

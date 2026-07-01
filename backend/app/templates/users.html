@@ -12,6 +12,22 @@
 
 <div class="card">
     <div class="card-body">
+        <div class="d-flex gap-2 mb-3">
+            <select id="filterRole" class="form-select form-select-sm" style="width:auto;" onchange="loadUsers()">
+                <option value="">{{ _('filter') }} {{ _('role') }}</option>
+                <option value="admin">{{ _('admin') }}</option>
+                <option value="employee">{{ _('employee') }}</option>
+                <option value="customer">{{ _('customer') }}</option>
+            </select>
+            <select id="filterStatus" class="form-select form-select-sm" style="width:auto;" onchange="loadUsers()">
+                <option value="">{{ _('filter') }} {{ _('status') }}</option>
+                <option value="active">{{ _('active') }}</option>
+                <option value="inactive">{{ _('inactive') }}</option>
+            </select>
+            <button class="btn btn-sm btn-outline-primary ms-auto" onclick="printUsers()">
+                <i class="bi bi-printer me-1"></i>{{ _('export_pdf') }}
+            </button>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead class="table-light">
@@ -92,7 +108,12 @@ let usersData = [];
 loadUsers();
 
 async function loadUsers() {
-    const data = await apiRequest('/users/');
+    const role = document.getElementById('filterRole').value;
+    const status = document.getElementById('filterStatus').value;
+    const params = new URLSearchParams();
+    if (role) params.set('role', role);
+    if (status) params.set('status', status);
+    const data = await apiRequest('/users/?' + params.toString());
     usersData = data;
     const tbody = document.getElementById('usersTableBody');
     if (!data || data.length === 0) {
@@ -193,6 +214,15 @@ async function handleUserSubmit(e) {
     bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
     showToast('{{ _('save') }}');
     loadUsers();
+}
+
+function printUsers() {
+    const role = document.getElementById('filterRole').value;
+    const status = document.getElementById('filterStatus').value;
+    const params = new URLSearchParams();
+    if (role) params.set('role', role);
+    if (status) params.set('status', status);
+    window.open('/api/reports/users?' + params.toString(), '_blank');
 }
 </script>
 {% endblock %}

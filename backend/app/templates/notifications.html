@@ -111,13 +111,13 @@ async function openSendModal() {
     const userSelect = document.querySelector('[name=user_id]');
     userSelect.innerHTML = '<option value="">{{ _('select_recipient') }}</option>';
 
-    const users = await apiRequest('/users/');
+    const users = await apiRequest('/users/?role=employee');
 
     if (Array.isArray(users)) {
         users.forEach(u => {
             if (u._id === '{{ user_id }}') return;
             const dot = window.onlineUserIds && window.onlineUserIds.has(u._id) ? ' 🟢' : ' 🔴';
-            userSelect.innerHTML += `<option value="${u._id}">${u.full_name} (${u.role})${dot}</option>`;
+            userSelect.innerHTML += `<option value="${u._id}">${u.full_name}${dot}</option>`;
         });
     }
 
