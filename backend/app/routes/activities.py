@@ -446,3 +446,25 @@ def send_notification():
     )
 
     return jsonify({"ok": True}), 201
+
+
+@activities_bp.route("/<activity_id>", methods=["DELETE"])
+@jwt_required()
+@admin_required
+def delete_activity(activity_id):
+    db = get_db()
+    activity = db.activities.find_one({"_id": ObjectId(activity_id)})
+    if not activity:
+        return jsonify({"error": "Activity not found"}), 404
+
+    db.activities.delete_one({"_id": ObjectId(activity_id)})
+
+    AuditService.log(
+        action="delete",
+        entity_type="activity",
+        entity_id=activity_id,
+        performed_by=get_jwt_identity(),
+        description=f"Activity '{activity.get('title')}' deleted",
+    )
+
+    return jsonify({"message": "Activity deleted"}), 200

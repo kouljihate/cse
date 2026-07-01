@@ -102,10 +102,12 @@
 
 {% block extra_scripts %}
 <script>
+let activitiesData = [];
 document.addEventListener('DOMContentLoaded', loadActivities);
 
 async function loadActivities() {
     const data = await apiRequest('/activities/');
+    activitiesData = data;
     const tbody = document.getElementById('activitiesTableBody');
     if (!data || data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">{{ _('no_activities') }}</td></tr>';
@@ -139,6 +141,11 @@ async function loadActivities() {
                         <i class="bi bi-check-all"></i>
                     </button>
                 ` : ''}
+                {% if user.role == 'admin' %}
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteActivity('${a._id}')" title="{{ _('delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+                {% endif %}
             </td>
         </tr>
         <tr id="actTasks-${a._id}" style="display:none">
@@ -168,6 +175,16 @@ async function updateStatus(id, status) {
         loadActivities();
         if (typeof updateNotificationBadge === 'function') updateNotificationBadge();
     }
+}
+
+async function deleteActivity(id) {
+    const a = activitiesData.find(x => x._id === id);
+    showDeleteModal('Activity', a ? a.title : '', () => {
+        apiRequest(`/activities/${id}`, { method: 'DELETE' }).then(() => {
+            showToast('{{ _('delete') }}');
+            loadActivities();
+        });
+    });
 }
 
 let actAllTasks = [];
