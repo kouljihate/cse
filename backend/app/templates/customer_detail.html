@@ -1,0 +1,148 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('customer_detail') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <a href="/customers" class="btn btn-outline-secondary btn-sm mb-2">
+            <i class="bi bi-arrow-left me-1"></i>{{ _('back') }}
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="display-3 text-primary mb-2">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <h4 id="customerName" class="mb-1">-</h4>
+                <p id="customerRole" class="text-muted mb-2">{{ _('customer') }}</p>
+                <span id="customerStatus" class="badge"></span>
+                <hr>
+                <div class="text-start">
+                    <p class="mb-1"><strong>{{ _('email') }}:</strong> <span id="customerEmail"></span></p>
+                    <p class="mb-1"><strong>{{ _('phone') }}:</strong> <span id="customerPhone"></span></p>
+                    <p class="mb-1"><strong>{{ _('affairs_count') }}:</strong> <span id="customerAffairs"></span></p>
+                    <p class="mb-0"><strong>{{ _('customer_since') }}:</strong> <span id="customerSince"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <div class="row g-3 mb-4">
+            <div class="col-4">
+                <div class="card card-dashboard border-primary text-center p-3">
+                    <h3 class="text-primary mb-0" id="statTotal">-</h3>
+                    <small class="text-muted">{{ _('total_customer_tasks') }}</small>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card card-dashboard border-warning text-center p-3">
+                    <h3 class="text-warning mb-0" id="statOpen">-</h3>
+                    <small class="text-muted">{{ _('open_tasks') }}</small>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card card-dashboard border-success text-center p-3">
+                    <h3 class="text-success mb-0" id="statCompleted">-</h3>
+                    <small class="text-muted">{{ _('completed_tasks') }}</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">{{ _('customer_tasks') }}</h6>
+                <div class="d-flex gap-2">
+                    <select id="taskStatusFilter" class="form-select form-select-sm" style="width:auto;" onchange="loadCustomerTasks()">
+                        <option value="">{{ _('filter_by_status') }}</option>
+                        <option value="pending">{{ _('pending') }}</option>
+                        <option value="in_progress">{{ _('in_progress') }}</option>
+                        <option value="completed">{{ _('completed') }}</option>
+                        <option value="cancelled">{{ _('cancelled') }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{{ _('task_title') }}</th>
+                                <th>{{ _('assigned_to') }}</th>
+                                <th>{{ _('priority') }}</th>
+                                <th>{{ _('status') }}</th>
+                                <th>{{ _('due_date') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customerTasksBody">
+                            <tr><td colspan="5" class="text-center text-muted">{{ _('loading') }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const CUSTOMER_ID = '{{ customer_id }}';
+let customerData = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadCustomer();
+    loadCustomerTasks();
+});
+
+async function loadCustomer() {
+    const data = await apiRequest(`/customers/${CUSTOMER_ID}`);
+    if (!data) return;
+    customerData = data;
+
+    document.getElementById('customerName').textContent = data.full_name;
+    document.getElementById('customerEmail').textContent = data.email;
+    document.getElementById('customerPhone').textContent = data.phone || '-';
+    document.getElementById('customerAffairs').textContent = data.affair_count ?? '-';
+    document.getElementById('customerSince').textContent = formatDate(data.created_at);
+
+    const statusEl = document.getElementById('customerStatus');
+    statusEl.textContent = data.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}';
+    statusEl.className = `badge bg-${data.is_active ? 'success' : 'danger'}`;
+
+    if (data.task_stats) {
+        document.getElementById('statTotal').textContent = data.task_stats.total || 0;
+        document.getElementById('statOpen').textContent = data.task_stats.open || 0;
+        document.getElementById('statCompleted').textContent = data.task_stats.completed || 0;
+    }
+}
+
+async function loadCustomerTasks() {
+    const statusFilter = document.getElementById('taskStatusFilter').value;
+    const params = new URLSearchParams();
+    if (statusFilter) params.set('status', statusFilter);
+
+    const data = await apiRequest(`/tasks/?${params}`);
+    const tbody = document.getElementById('customerTasksBody');
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">{{ _('no_tasks') }}</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = data.map(t => `
+        <tr>
+            <td><strong>${t.title}</strong></td>
+            <td>${t.assigned_to_name || '-'}</td>
+            <td><span class="badge bg-${t.priority === 'critical' ? 'danger' : t.priority === 'high' ? 'warning' : t.priority === 'medium' ? 'primary' : 'secondary'}">${t.priority}</span></td>
+            <td><span class="badge bg-${t.status === 'completed' ? 'success' : t.status === 'in_progress' ? 'info' : t.status === 'cancelled' ? 'danger' : 'warning'}">${t.status.replace('_', ' ')}</span></td>
+            <td>${formatDate(t.due_date)}</td>
+        </tr>
+    `).join('');
+}
+</script>
+{% endblock %}

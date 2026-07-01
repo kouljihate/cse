@@ -1,0 +1,84 @@
+{% extends "auth_base.html" %}
+
+{% block title %}{{ _('register') }} - {{ _('app_name') }}{% endblock %}
+
+{% block auth_content %}
+<form id="registerForm" onsubmit="return handleRegister(event)">
+    <div class="mb-3 text-start">
+        <label class="form-label">{{ _('full_name') }}</label>
+        <input type="text" name="full_name" class="form-control" required>
+    </div>
+    <div class="mb-3 text-start">
+        <label class="form-label">{{ _('username') }}</label>
+        <input type="text" name="username" class="form-control" required>
+    </div>
+    <div class="mb-3 text-start">
+        <label class="form-label">{{ _('email') }}</label>
+        <input type="email" name="email" class="form-control" required>
+    </div>
+    <div class="mb-3 text-start">
+        <label class="form-label">{{ _('phone') }}</label>
+        <input type="tel" name="phone" class="form-control">
+    </div>
+    <div class="mb-3 text-start">
+        <label class="form-label">{{ _('password') }}</label>
+        <input type="password" name="password" class="form-control" required minlength="6">
+    </div>
+    <div class="mb-3 text-start">
+        <label class="form-label">{{ _('role') }}</label>
+        <select name="role" class="form-select">
+            <option value="customer">{{ _('customer') }}</option>
+            <option value="employee">{{ _('employee') }}</option>
+        </select>
+    </div>
+    <div id="registerError" class="alert alert-danger d-none"></div>
+    <button type="submit" class="btn btn-cse w-100 btn-lg mb-3">
+        <span id="registerBtnText">{{ _('register') }}</span>
+        <span id="registerBtnSpinner" class="spinner-border spinner-border-sm d-none"></span>
+    </button>
+    <p class="mb-0">
+        {{ _('has_account') }}
+        <a href="/login{{ '?lang=' + lang if lang != 'en' else '' }}">{{ _('sign_in') }}</a>
+    </p>
+</form>
+
+<script>
+async function handleRegister(e) {
+    e.preventDefault();
+    const form = e.target;
+    const btn = document.getElementById('registerBtnText');
+    const spinner = document.getElementById('registerBtnSpinner');
+    const error = document.getElementById('registerError');
+
+    btn.textContent = '{{ _('loading') }}';
+    spinner.classList.remove('d-none');
+    error.classList.add('d-none');
+
+    const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            full_name: form.full_name.value,
+            username: form.username.value,
+            email: form.email.value,
+            phone: form.phone.value,
+            password: form.password.value,
+            role: form.role.value,
+        }),
+    });
+    const data = await res.json();
+
+    btn.textContent = '{{ _('register') }}';
+    spinner.classList.add('d-none');
+
+    if (res.ok) {
+        showToast('{{ _('register_success') }}');
+        setTimeout(() => window.location.href = '/login', 1000);
+    } else {
+        error.textContent = data.error || '{{ _('register') }} failed';
+        error.classList.remove('d-none');
+    }
+    return false;
+}
+</script>
+{% endblock %}

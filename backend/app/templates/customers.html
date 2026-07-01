@@ -1,0 +1,320 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('customers') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-person-badge me-2"></i>{{ _('customer_list') }}</h4>
+    <div class="d-flex gap-2">
+        <button class="btn btn-cse" onclick="openCreateModal()">
+            <i class="bi bi-plus-lg me-1"></i>{{ _('create_customer') }}
+        </button>
+        <button class="btn btn-outline-primary" onclick="openBulkModal()">
+            <i class="bi bi-upload me-1"></i>{{ _('bulk_import') }}
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ _('full_name') }}</th>
+                        <th>{{ _('email') }}</th>
+                        <th>{{ _('phone') }}</th>
+                        <th>{{ _('affairs_count') }}</th>
+                        <th>{{ _('status') }}</th>
+                        <th>{{ _('total_customer_tasks') }}</th>
+                        <th>{{ _('customer_since') }}</th>
+                        <th>{{ _('actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                    <tr><td colspan="7" class="text-center text-muted">{{ _('loading') }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="customerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="customerModalTitle">{{ _('create_customer') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="customerForm" onsubmit="return handleCustomerSubmit(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="editCustomerId">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('full_name') }} *</label>
+                        <input type="text" name="full_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('username') }} *</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('email') }} *</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('phone') }}</label>
+                        <input type="text" name="phone" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('password') }} *</label>
+                        <input type="password" name="password" class="form-control" minlength="6">
+                    </div>
+                    <div id="customerError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('cancel') }}</button>
+                    <button type="submit" class="btn btn-cse">{{ _('save') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="bulkModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ _('bulk_import_title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">{{ _('bulk_import_desc') }}</p>
+                <div class="d-flex gap-2 mb-3">
+                    <label class="btn btn-outline-primary">
+                        <i class="bi bi-upload me-1"></i>{{ _('bulk_import_csv') }}
+                        <input type="file" id="bulkCsvFile" accept=".csv" hidden>
+                    </label>
+                    <button class="btn btn-outline-secondary" onclick="downloadCsvTemplate()">
+                        <i class="bi bi-download me-1"></i>{{ _('bulk_download_template') }}
+                    </button>
+                </div>
+                <small class="text-muted">{{ _('bulk_password_note') }}</small>
+                <textarea id="bulkJsonInput" class="form-control font-monospace mt-2" rows="8" placeholder="{{ _('bulk_json_placeholder') }}"></textarea>
+                <div id="bulkError" class="alert alert-danger mt-2 d-none"></div>
+                <div id="bulkResults" class="d-none mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('close') }}</button>
+                <button type="button" class="btn btn-cse" onclick="submitBulkImport()">
+                    <i class="bi bi-upload me-1"></i>{{ _('bulk_import_json') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    loadCustomers();
+});
+
+async function loadCustomers() {
+    const data = await apiRequest('/customers/');
+    const tbody = document.getElementById('customersTableBody');
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">{{ _('no_customers') }}</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(c => `
+        <tr>
+            <td><a href="/customers/${c._id}" class="fw-bold text-decoration-none">${c.full_name}</a></td>
+            <td>${c.email}</td>
+            <td>${c.phone || '-'}</td>
+            <td><span class="badge bg-info">${c.affair_count || 0}</span></td>
+            <td><span class="badge bg-${c.is_active ? 'success' : 'danger'}">${c.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
+            <td><span class="badge bg-info">${c.task_stats?.total || 0}</span></td>
+            <td><small class="text-muted">${formatDate(c.created_at)}</small></td>
+            <td class="table-actions">
+                <button class="btn btn-sm btn-outline-primary" onclick="editCustomer('${c._id}')" title="{{ _('edit') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomer('${c._id}')" title="{{ _('delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openCreateModal() {
+    document.getElementById('customerModalTitle').textContent = '{{ _('create_customer') }}';
+    document.getElementById('editCustomerId').value = '';
+    document.getElementById('customerForm').reset();
+    document.getElementById('customerForm').querySelector('[name=password]').required = true;
+    document.getElementById('customerError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('customerModal')).show();
+}
+
+async function editCustomer(id) {
+    const data = await apiRequest(`/customers/${id}`);
+    if (!data) return;
+    document.getElementById('customerModalTitle').textContent = '{{ _('edit_customer') }}';
+    document.getElementById('editCustomerId').value = id;
+    document.getElementById('customerForm').full_name.value = data.full_name || '';
+    document.getElementById('customerForm').username.value = data.username || '';
+    document.getElementById('customerForm').email.value = data.email || '';
+    document.getElementById('customerForm').phone.value = data.phone || '';
+    document.getElementById('customerForm').password.required = false;
+    document.getElementById('customerForm').password.value = '';
+    document.getElementById('customerError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('customerModal')).show();
+}
+
+async function handleCustomerSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const id = document.getElementById('editCustomerId').value;
+    const errorEl = document.getElementById('customerError');
+    errorEl.classList.add('d-none');
+
+    const body = {
+        full_name: form.full_name.value,
+        username: form.username.value,
+        email: form.email.value,
+        phone: form.phone.value,
+    };
+    if (form.password.value) body.password = form.password.value;
+
+    let data, url, method;
+    if (id) {
+        url = `/customers/${id}`;
+        method = 'PUT';
+        data = await apiRequest(url, { method, body: JSON.stringify(body) });
+    } else {
+        if (!form.password.value) {
+            errorEl.textContent = '{{ _('password') }} {{ _('required') }}';
+            errorEl.classList.remove('d-none');
+            return false;
+        }
+        data = await apiRequest('/customers/', { method: 'POST', body: JSON.stringify(body) });
+    }
+
+    if (data._id || data.message) {
+        bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
+        showToast(id ? '{{ _('update') }}' : '{{ _('create') }}');
+        loadCustomers();
+    } else {
+        errorEl.textContent = data.error || 'Error';
+        errorEl.classList.remove('d-none');
+    }
+    return false;
+}
+
+async function deleteCustomer(id) {
+    if (!confirm('{{ _('confirm_delete') }}')) return;
+    await apiRequest(`/customers/${id}`, { method: 'DELETE' });
+    showToast('{{ _('delete') }}');
+    loadCustomers();
+}
+
+// ── Bulk Import ─────────────────────────────────────
+
+function openBulkModal() {
+    document.getElementById('bulkResults').classList.add('d-none');
+    document.getElementById('bulkJsonInput').value = '';
+    document.getElementById('bulkError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('bulkModal')).show();
+}
+
+document.getElementById('bulkCsvFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        const text = evt.target.result;
+        const lines = text.split('\n').filter(l => l.trim());
+        if (lines.length < 2) {
+            document.getElementById('bulkError').textContent = 'CSV must have a header row and at least one data row';
+            document.getElementById('bulkError').classList.remove('d-none');
+            return;
+        }
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const customers = [];
+        for (let i = 1; i < lines.length; i++) {
+            const vals = lines[i].split(',').map(v => v.trim());
+            const obj = {};
+            headers.forEach((h, idx) => { if (vals[idx]) obj[h] = vals[idx]; });
+            if (obj.username && obj.email) customers.push(obj);
+        }
+        if (customers.length === 0) {
+            document.getElementById('bulkError').textContent = 'No valid rows found in CSV';
+            document.getElementById('bulkError').classList.remove('d-none');
+            return;
+        }
+        document.getElementById('bulkJsonInput').value = JSON.stringify(customers, null, 2);
+        document.getElementById('bulkCsvFile').value = '';
+        document.getElementById('bulkError').classList.add('d-none');
+    };
+    reader.readAsText(file);
+});
+
+async function submitBulkImport() {
+    const input = document.getElementById('bulkJsonInput');
+    const resultsEl = document.getElementById('bulkResults');
+    const errorEl = document.getElementById('bulkError');
+    errorEl.classList.add('d-none');
+
+    let customers;
+    try {
+        customers = JSON.parse(input.value);
+        if (!Array.isArray(customers)) throw new Error('Must be an array');
+    } catch (e) {
+        errorEl.textContent = 'Invalid JSON: ' + e.message;
+        errorEl.classList.remove('d-none');
+        return;
+    }
+
+    resultsEl.classList.remove('d-none');
+    resultsEl.innerHTML = '<div class="text-center"><div class="spinner-border"></div><p class="mt-2">{{ _('loading') }}</p></div>';
+
+    const data = await apiRequest('/customers/bulk', {
+        method: 'POST',
+        body: input.value,
+    });
+
+    if (!data) return;
+
+    resultsEl.innerHTML = `
+        <div class="d-flex gap-3 mb-3">
+            <div class="text-center flex-fill p-2 bg-success text-white rounded">
+                <strong>${data.created}</strong><br><small>{{ _('bulk_created') }}</small>
+            </div>
+            <div class="text-center flex-fill p-2 bg-warning rounded">
+                <strong>${data.skipped.length}</strong><br><small>{{ _('bulk_skipped') }}</small>
+            </div>
+            <div class="text-center flex-fill p-2 bg-danger text-white rounded">
+                <strong>${data.errors.length}</strong><br><small>{{ _('bulk_errors') }}</small>
+            </div>
+        </div>
+        ${data.errors.length ? '<hr><h6>{{ _('bulk_errors') }}</h6><ul class="small">' +
+            data.errors.map(e => `<li>Row ${e.row}: ${e.reason}</li>`).join('') + '</ul>' : ''}
+        ${data.skipped.length ? '<hr><h6>{{ _('bulk_skipped') }}</h6><ul class="small">' +
+            data.skipped.map(s => `<li>Row ${s.row}: ${s.reason} (${s.username})</li>`).join('') + '</ul>' : ''}
+    `;
+    loadCustomers();
+}
+
+function downloadCsvTemplate() {
+    const headers = ['username', 'email', 'full_name', 'password', 'phone'];
+    const sample = ['john_doe', 'john@example.com', 'John Doe', 'customer123', '+1-555-0100'];
+    const csv = headers.join(',') + '\n' + sample.join(',') + '\n';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'customers_template.csv';
+    a.click();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('affairs') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-folder me-2"></i>{{ _('affair_list') }}</h4>
+    <button class="btn btn-cse" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg me-1"></i>{{ _('create_affair') }}
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ _('affair_name') }}</th>
+                        <th>{{ _('affair_type') }}</th>
+                        <th>{{ _('customer') }}</th>
+                        <th>{{ _('affair_phone') }}</th>
+                        <th>{{ _('created_at') }}</th>
+                        <th>{{ _('actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="affairsTableBody">
+                    <tr><td colspan="6" class="text-center text-muted">{{ _('loading') }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="affairModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="affairModalTitle">{{ _('create_affair') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="affairForm" onsubmit="return handleAffairSubmit(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="editAffairId">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('affair_name') }} *</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('affair_type') }}</label>
+                        <select name="affair_type" class="form-select">
+                            <option value="individual">{{ _('customer') }}</option>
+                            <option value="enterprise">Enterprise</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('customer') }} *</label>
+                        <select name="customer_id" class="form-select" id="affairCustomerSelect" required>
+                            <option value="">{{ _('select') }}...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('affair_phone') }}</label>
+                        <input type="text" name="phone" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('affair_email') }}</label>
+                        <input type="email" name="email" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('affair_address') }}</label>
+                        <textarea name="address" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('affair_notes') }}</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div id="affairError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('cancel') }}</button>
+                    <button type="submit" class="btn btn-cse">{{ _('save') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let editingAffairId = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const customers = await apiRequest('/customers/');
+    if (customers) {
+        const sel = document.getElementById('affairCustomerSelect');
+        sel.innerHTML = '<option value="">{{ _('select') }}...</option>' +
+            customers.map(c => `<option value="${c._id}">${c.full_name}</option>`).join('');
+    }
+    loadAffairs();
+});
+
+async function loadAffairs() {
+    const data = await apiRequest('/affairs/');
+    const tbody = document.getElementById('affairsTableBody');
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">{{ _('no_affairs') }}</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(a => `
+        <tr>
+            <td><strong>${a.name}</strong></td>
+            <td><span class="badge bg-${a.affair_type === 'enterprise' ? 'primary' : 'secondary'}">${a.affair_type}</span></td>
+            <td>${a.customer_name || '-'}</td>
+            <td>${a.phone || '-'}</td>
+            <td><small class="text-muted">${formatDate(a.created_at)}</small></td>
+            <td class="table-actions">
+                <button class="btn btn-sm btn-outline-primary" onclick="editAffair('${a._id}')" title="{{ _('edit') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteAffair('${a._id}')" title="{{ _('delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function openCreateModal() {
+    editingAffairId = null;
+    document.getElementById('affairModalTitle').textContent = '{{ _('create_affair') }}';
+    document.getElementById('editAffairId').value = '';
+    document.getElementById('affairForm').reset();
+    document.getElementById('affairError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('affairModal')).show();
+}
+
+async function editAffair(id) {
+    const data = await apiRequest(`/affairs/${id}`);
+    if (!data) return;
+    editingAffairId = id;
+    document.getElementById('affairModalTitle').textContent = '{{ _('edit_affair') }}';
+    document.getElementById('editAffairId').value = id;
+    document.getElementById('affairForm').name.value = data.name || '';
+    document.getElementById('affairForm').affair_type.value = data.affair_type || 'individual';
+    document.getElementById('affairForm').phone.value = data.phone || '';
+    document.getElementById('affairForm').email.value = data.email || '';
+    document.getElementById('affairForm').address.value = data.address || '';
+    document.getElementById('affairForm').notes.value = data.notes || '';
+    document.getElementById('affairCustomerSelect').value = data.customer_id || '';
+    document.getElementById('affairError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('affairModal')).show();
+}
+
+async function handleAffairSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const id = document.getElementById('editAffairId').value;
+    const errorEl = document.getElementById('affairError');
+    errorEl.classList.add('d-none');
+
+    const body = {
+        name: form.name.value,
+        affair_type: form.affair_type.value,
+        customer_id: form.customer_id.value,
+        phone: form.phone.value || null,
+        email: form.email.value || null,
+        address: form.address.value || null,
+        notes: form.notes.value || null,
+    };
+
+    let data;
+    if (id) {
+        data = await apiRequest(`/affairs/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+    } else {
+        data = await apiRequest('/affairs/', { method: 'POST', body: JSON.stringify(body) });
+    }
+
+    if (data._id || data.message) {
+        bootstrap.Modal.getInstance(document.getElementById('affairModal')).hide();
+        showToast(id ? '{{ _('update') }}' : '{{ _('create') }}');
+        loadAffairs();
+    } else {
+        errorEl.textContent = data.error || 'Error';
+        errorEl.classList.remove('d-none');
+    }
+    return false;
+}
+
+async function deleteAffair(id) {
+    if (!confirm('{{ _('confirm_delete') }}')) return;
+    await apiRequest(`/affairs/${id}`, { method: 'DELETE' });
+    showToast('{{ _('delete') }}');
+    loadAffairs();
+}
+</script>
+{% endblock %}

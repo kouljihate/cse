@@ -1,0 +1,183 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('dashboard') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-0"><i class="bi bi-grid-1x2-fill me-2"></i>{{ _('dashboard') }}</h4>
+        <hr>
+    </div>
+</div>
+
+<div class="row g-3 mb-4" id="statsCards">
+    <div class="col-md-3 col-6">
+        <div class="card card-dashboard border-primary">
+            <div class="card-body text-center">
+                <h5 class="card-title text-primary" id="totalTasks">-</h5>
+                <p class="card-text text-muted mb-0">{{ _('total_tasks') }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card card-dashboard border-success">
+            <div class="card-body text-center">
+                <h5 class="card-title text-success" id="monthlyTasks">-</h5>
+                <p class="card-text text-muted mb-0">{{ _('tasks_this_month') }}</p>
+            </div>
+        </div>
+    </div>
+    {% if user.role == 'admin' %}
+    <div class="col-md-3 col-6">
+        <a href="/services" class="text-decoration-none">
+            <div class="card card-dashboard border-secondary">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-secondary" id="totalServices">-</h5>
+                    <p class="card-text text-muted mb-0">{{ _('services') }}</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6">
+        <a href="/users" class="text-decoration-none">
+            <div class="card card-dashboard border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-warning" id="totalUsers">-</h5>
+                    <p class="card-text text-muted mb-0">{{ _('total_users') }}</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6">
+        <a href="/customers" class="text-decoration-none">
+            <div class="card card-dashboard border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info" id="totalCustomers">-</h5>
+                    <p class="card-text text-muted mb-0">{{ _('customers') }}</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    {% endif %}
+    {% if user.role == 'customer' %}
+    <div class="col-md-3 col-6">
+        <div class="card card-dashboard border-warning">
+            <div class="card-body text-center">
+                <h5 class="card-title text-warning" id="openTasks">-</h5>
+                <p class="card-text text-muted mb-0">{{ _('open_tasks') }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card card-dashboard border-success">
+            <div class="card-body text-center">
+                <h5 class="card-title text-success" id="completedTasks">-</h5>
+                <p class="card-text text-muted mb-0">{{ _('completed_tasks') }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">{{ _('tasks_by_status') }}</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">{{ _('tasks_by_priority') }}</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="priorityChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0">{{ _('recent_activities') }}</h6>
+    </div>
+    <div class="card-body">
+        <div id="activitiesList">
+            <p class="text-muted mb-0">{{ _('loading') }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+loadDashboard();
+
+async function loadDashboard() {
+    const data = await apiRequest('/dashboard/stats');
+    if (!data) return;
+
+    document.getElementById('totalTasks').textContent = data.total_tasks;
+    document.getElementById('monthlyTasks').textContent = data.monthly_tasks;
+    if (data.users_count !== undefined) {
+        document.getElementById('totalUsers').textContent = data.users_count;
+    }
+    if (data.services_count !== undefined) {
+        document.getElementById('totalServices').textContent = data.services_count;
+    }
+    if (data.customers_count !== undefined) {
+        document.getElementById('totalCustomers').textContent = data.customers_count;
+    }
+    if (data.open_tasks !== undefined) {
+        document.getElementById('openTasks').textContent = data.open_tasks;
+    }
+    if (data.completed_tasks !== undefined) {
+        document.getElementById('completedTasks').textContent = data.completed_tasks;
+    }
+
+    new Chart(document.getElementById('statusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(data.tasks_by_status).map(k => k.replace('_', ' ')),
+            datasets: [{
+                data: Object.values(data.tasks_by_status),
+                backgroundColor: ['#ffc107', '#0d6efd', '#198754', '#dc3545'],
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    new Chart(document.getElementById('priorityChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(data.tasks_by_priority).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+            datasets: [{
+                data: Object.values(data.tasks_by_priority),
+                backgroundColor: ['#6c757d', '#0d6efd', '#ffc107', '#dc3545'],
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    const activitiesEl = document.getElementById('activitiesList');
+    if (data.recent_activities?.length) {
+        activitiesEl.innerHTML = '<div class="activity-timeline">' +
+            data.recent_activities.map(a => `
+                <div class="activity-item">
+                    <strong>${a.performed_by_name || 'System'}</strong>
+                    <span class="text-muted">${a.description}</span>
+                    <br><small class="text-muted">${formatDate(a.created_at)}</small>
+                </div>
+            `).join('') +
+        '</div>';
+    } else {
+        activitiesEl.innerHTML = '<p class="text-muted mb-0">{{ _('no_data') }}</p>';
+    }
+}
+</script>
+{% endblock %}

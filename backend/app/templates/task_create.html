@@ -1,0 +1,140 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('create_task') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h4 class="mb-4"><i class="bi bi-plus-circle me-2"></i>{{ _('create_task') }}</h4>
+
+        <div class="card">
+            <div class="card-body">
+                <form id="taskForm" onsubmit="return handleCreate(event)">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('task_title') }} *</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('task_description') }}</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('affair') }} *</label>
+                            <select name="affair_id" class="form-select" id="affairSelect" required>
+                                <option value="">{{ _('loading') }}...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('service') }}</label>
+                            <select name="service_id" class="form-select" id="serviceSelect">
+                                <option value="">{{ _('none') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('assigned_to') }} *</label>
+                            <select name="assigned_to" class="form-select" id="employeeSelect" required>
+                                <option value="">{{ _('loading') }}...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('priority') }}</label>
+                            <select name="priority" class="form-select">
+                                <option value="low">{{ _('low') }}</option>
+                                <option value="medium" selected>{{ _('medium') }}</option>
+                                <option value="high">{{ _('high') }}</option>
+                                <option value="critical">{{ _('critical') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('due_date') }}</label>
+                            <input type="date" name="due_date" class="form-control">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('priority') }}</label>
+                            <select name="priority" class="form-select">
+                                <option value="low">{{ _('low') }}</option>
+                                <option value="medium" selected>{{ _('medium') }}</option>
+                                <option value="high">{{ _('high') }}</option>
+                                <option value="critical">{{ _('critical') }}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('due_date') }}</label>
+                            <input type="date" name="due_date" class="form-control">
+                        </div>
+                    </div>
+                    <div id="taskError" class="alert alert-danger d-none"></div>
+                    <button type="submit" class="btn btn-cse">
+                        <i class="bi bi-check-lg me-1"></i>{{ _('create_task') }}
+                    </button>
+                    <a href="/tasks" class="btn btn-secondary ms-2">{{ _('cancel') }}</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const affairs = await apiRequest('/affairs/');
+        const employees = await apiRequest('/users/employees');
+        const services = await apiRequest('/services/');
+
+        const affairSelect = document.getElementById('affairSelect');
+        affairSelect.innerHTML = '<option value="">{{ _('select') }}...</option>' +
+            affairs.map(a => `<option value="${a._id}">${a.name}</option>`).join('');
+
+        const employeeSelect = document.getElementById('employeeSelect');
+        employeeSelect.innerHTML = '<option value="">{{ _('select') }}...</option>' +
+            employees.map(e => `<option value="${e._id}">${e.full_name}</option>`).join('');
+
+        const serviceSelect = document.getElementById('serviceSelect');
+        serviceSelect.innerHTML = '<option value="">{{ _('none') }}</option>' +
+            services.map(s => `<option value="${s._id}">${s.name}</option>`).join('');
+    } catch (e) {
+        console.error(e);
+    }
+});
+
+async function handleCreate(e) {
+    e.preventDefault();
+    const form = e.target;
+    const errorEl = document.getElementById('taskError');
+    errorEl.classList.add('d-none');
+
+    const body = {
+        title: form.title.value,
+        description: form.description.value,
+        affair_id: form.affair_id.value,
+        service_id: form.service_id.value || null,
+        assigned_to: form.assigned_to.value,
+        priority: form.priority.value,
+    };
+    if (form.due_date.value) body.due_date = form.due_date.value;
+
+    const data = await apiRequest('/tasks/', {
+        method: 'POST',
+        body: JSON.stringify(body),
+    });
+
+    if (data._id) {
+        showToast('{{ _('create_task') }} {{ _('successful') }}');
+        window.location.href = '/tasks';
+    } else {
+        errorEl.textContent = data.error || '{{ _('create_task') }} failed';
+        errorEl.classList.remove('d-none');
+    }
+    return false;
+}
+</script>
+{% endblock %}

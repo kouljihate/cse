@@ -1,0 +1,55 @@
+{% extends "auth_base.html" %}
+
+{% block title %}{{ _('sign_in') }} - {{ _('app_name') }}{% endblock %}
+
+{% block auth_content %}
+<form id="loginForm" onsubmit="return handleLogin(event)">
+    <div class="mb-3 text-start">
+        <label class="form-label">{{ _('username') }}</label>
+        <input type="text" name="username" class="form-control" required autofocus>
+    </div>
+    <div class="mb-3 text-start">
+        <label class="form-label">{{ _('password') }}</label>
+        <input type="password" name="password" class="form-control" required>
+    </div>
+    <div id="loginError" class="alert alert-danger d-none"></div>
+    <button type="submit" class="btn btn-cse w-100 btn-lg mb-3">
+        <span id="loginBtnText">{{ _('sign_in') }}</span>
+        <span id="loginBtnSpinner" class="spinner-border spinner-border-sm d-none"></span>
+    </button>
+    <p class="mb-0">
+        {{ _('no_account') }}
+        <a href="/register{{ '?lang=' + lang if lang != 'en' else '' }}">{{ _('sign_up') }}</a>
+    </p>
+</form>
+
+<script>
+async function handleLogin(e) {
+    e.preventDefault();
+    const form = e.target;
+    const btn = document.getElementById('loginBtnText');
+    const spinner = document.getElementById('loginBtnSpinner');
+    const error = document.getElementById('loginError');
+
+    btn.textContent = '{{ _('loading') }}';
+    spinner.classList.remove('d-none');
+    error.classList.add('d-none');
+
+    const data = await login(
+        form.username.value,
+        form.password.value
+    );
+
+    btn.textContent = '{{ _('sign_in') }}';
+    spinner.classList.add('d-none');
+
+    if (data.access_token) {
+        window.location.href = '/dashboard';
+    } else {
+        error.textContent = data.error || '{{ _('invalid_credentials') }}';
+        error.classList.remove('d-none');
+    }
+    return false;
+}
+</script>
+{% endblock %}

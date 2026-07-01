@@ -1,0 +1,67 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('users') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-people me-2"></i>{{ _('user_list') }}</h4>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ _('full_name') }}</th>
+                        <th>{{ _('username') }}</th>
+                        <th>{{ _('email') }}</th>
+                        <th>{{ _('role') }}</th>
+                        <th>{{ _('status') }}</th>
+                        <th>{{ _('actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr><td colspan="6" class="text-center text-muted">{{ _('loading') }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+loadUsers();
+
+async function loadUsers() {
+    const data = await apiRequest('/users/');
+    const tbody = document.getElementById('usersTableBody');
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">{{ _('no_users') }}</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(u => `
+        <tr>
+            <td><strong>${u.full_name}</strong></td>
+            <td>${u.username}</td>
+            <td>${u.email}</td>
+            <td><span class="badge bg-${u.role === 'admin' ? 'danger' : u.role === 'employee' ? 'primary' : 'secondary'}">${u.role}</span></td>
+            <td><span class="badge bg-${u.is_active ? 'success' : 'danger'}">${u.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
+            <td class="table-actions">
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u._id}')"><i class="bi bi-trash"></i></button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function deleteUser(id) {
+    if (!confirm('{{ _('confirm_delete') }}')) return;
+    const data = await apiRequest(`/users/${id}`, { method: 'DELETE' });
+    if (data.message) {
+        showToast('{{ _('delete') }}');
+        loadUsers();
+    }
+}
+</script>
+{% endblock %}

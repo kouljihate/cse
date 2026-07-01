@@ -1,0 +1,236 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('services') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-gear me-2"></i>{{ _('service_management') }}</h4>
+    <button class="btn btn-cse" onclick="openCreateModal()">
+        <i class="bi bi-plus-lg me-1"></i>{{ _('create_service') }}
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ _('service_name') }}</th>
+                        <th>{{ _('service_description') }}</th>
+                        <th>{{ _('service_price') }}</th>
+                        <th>{{ _('status') }}</th>
+                        <th>{{ _('tasks') }}</th>
+                        <th>{{ _('created_at') }}</th>
+                        <th>{{ _('actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="servicesTableBody">
+                    <tr><td colspan="7" class="text-center text-muted">{{ _('loading') }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="serviceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="serviceModalTitle">{{ _('create_service') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="serviceForm" onsubmit="return handleServiceSubmit(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="editServiceId">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('service_name') }} *</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('service_description') }}</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('service_price') }}</label>
+                        <input type="number" name="price" class="form-control" step="0.01" min="0">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="serviceActive" checked>
+                        <label class="form-check-label" for="serviceActive">{{ _('active') }}</label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('tasks') }}</label>
+                        <div id="taskCheckboxList" class="border rounded p-2" style="max-height:180px;overflow-y:auto">
+                            <p class="text-muted mb-0 small">{{ _('loading') }}</p>
+                        </div>
+                    </div>
+                    <div id="serviceError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('cancel') }}</button>
+                    <button type="submit" class="btn btn-cse">{{ _('save') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let editingServiceId = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadServices();
+});
+
+let serviceTasksCache = {};
+let allTasksList = [];
+
+async function loadTaskCheckboxes(selectedIds = []) {
+    const container = document.getElementById('taskCheckboxList');
+    if (!allTasksList.length) {
+        const data = await apiRequest('/tasks/');
+        if (data) allTasksList = data;
+    }
+    if (!allTasksList.length) {
+        container.innerHTML = '<p class="text-muted mb-0 small">{{ _('no_tasks') }}</p>';
+        return;
+    }
+    container.innerHTML = allTasksList.map(t => `
+        <div class="form-check">
+            <input class="form-check-input task-checkbox" type="checkbox" value="${t._id}" id="task-${t._id}" ${selectedIds.includes(t._id) ? 'checked' : ''}>
+            <label class="form-check-label small" for="task-${t._id}">${t.title} ${t.assigned_to_name ? '(' + t.assigned_to_name + ')' : ''}</label>
+        </div>
+    `).join('');
+}
+
+function getSelectedTaskIds() {
+    return Array.from(document.querySelectorAll('.task-checkbox:checked')).map(cb => cb.value);
+}
+
+async function loadServices() {
+    const data = await apiRequest('/services/');
+    const tbody = document.getElementById('servicesTableBody');
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">{{ _('no_services') }}</td></tr>';
+        return;
+    }
+    serviceTasksCache = {};
+    const tasksData = await apiRequest('/tasks/');
+    if (tasksData) {
+        tasksData.forEach(t => {
+            if (t.service_id) {
+                if (!serviceTasksCache[t.service_id]) serviceTasksCache[t.service_id] = [];
+                serviceTasksCache[t.service_id].push(t);
+            }
+        });
+    }
+    tbody.innerHTML = data.map(s => {
+        const st = serviceTasksCache[s._id] || [];
+        const taskCount = (s.task_ids || []).length;
+        return `
+        <tr>
+            <td><strong>${s.name}</strong></td>
+            <td>${s.description || '-'}</td>
+            <td>${s.price != null ? '$' + Number(s.price).toFixed(2) : '-'}</td>
+            <td><span class="badge bg-${s.is_active ? 'success' : 'danger'}">${s.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
+            <td><span class="badge bg-info" style="cursor:pointer" onclick="toggleServiceTasks('${s._id}')">${taskCount} ${taskCount === 1 ? '{{ _('task') }}' : '{{ _('tasks') }}'}</span></td>
+            <td><small class="text-muted">${formatDate(s.created_at)}</small></td>
+            <td class="table-actions">
+                <button class="btn btn-sm btn-outline-primary" onclick="editService('${s._id}')" title="{{ _('edit') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteService('${s._id}')" title="{{ _('delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        </tr>
+        <tr id="tasks-${s._id}" style="display:none">
+            <td colspan="7" style="padding:0">
+                <div class="p-3 bg-light">
+                    <strong>{{ _('tasks') }}</strong>
+                    ${st.length === 0 ? '<p class="text-muted mb-0">{{ _('no_tasks') }}</p>' :
+                      '<table class="table table-sm mb-0"><thead><tr><th>{{ _('task_title') }}</th><th>{{ _('assigned_to') }}</th><th>{{ _('status') }}</th><th>{{ _('priority') }}</th></tr></thead><tbody>' +
+                      st.map(t => `<tr><td>${t.title}</td><td>${t.assigned_to_name || '-'}</td><td><span class="badge bg-${t.status === 'completed' ? 'success' : t.status === 'in_progress' ? 'info' : t.status === 'cancelled' ? 'danger' : 'warning'}">${t.status}</span></td><td><span class="badge bg-${t.priority === 'critical' ? 'danger' : t.priority === 'high' ? 'warning' : t.priority === 'medium' ? 'primary' : 'secondary'}">${t.priority}</span></td></tr>`).join('') +
+                      '</tbody></table>'}
+                </div>
+            </td>
+        </tr>
+    `}).join('');
+}
+
+function toggleServiceTasks(serviceId) {
+    const row = document.getElementById('tasks-' + serviceId);
+    if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+function openCreateModal() {
+    editingServiceId = null;
+    document.getElementById('serviceModalTitle').textContent = '{{ _('create_service') }}';
+    document.getElementById('editServiceId').value = '';
+    document.getElementById('serviceForm').reset();
+    document.getElementById('serviceActive').checked = true;
+    document.getElementById('serviceError').classList.add('d-none');
+    loadTaskCheckboxes([]);
+    new bootstrap.Modal(document.getElementById('serviceModal')).show();
+}
+
+async function editService(id) {
+    const data = await apiRequest(`/services/${id}`);
+    if (!data) return;
+    editingServiceId = id;
+    document.getElementById('serviceModalTitle').textContent = '{{ _('edit_service') }}';
+    document.getElementById('editServiceId').value = id;
+    document.getElementById('serviceForm').name.value = data.name || '';
+    document.getElementById('serviceForm').description.value = data.description || '';
+    document.getElementById('serviceForm').price.value = data.price || '';
+    document.getElementById('serviceActive').checked = data.is_active !== false;
+    document.getElementById('serviceError').classList.add('d-none');
+
+    loadTaskCheckboxes(data.task_ids || []);
+    new bootstrap.Modal(document.getElementById('serviceModal')).show();
+}
+
+async function handleServiceSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const id = document.getElementById('editServiceId').value;
+    const errorEl = document.getElementById('serviceError');
+    errorEl.classList.add('d-none');
+
+    const body = {
+        name: form.name.value,
+        description: form.description.value || null,
+        price: form.price.value ? parseFloat(form.price.value) : null,
+        is_active: form.is_active.checked,
+        task_ids: getSelectedTaskIds(),
+    };
+
+    let data;
+    if (id) {
+        data = await apiRequest(`/services/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+    } else {
+        data = await apiRequest('/services/', { method: 'POST', body: JSON.stringify(body) });
+    }
+
+    if (data._id || data.message) {
+        bootstrap.Modal.getInstance(document.getElementById('serviceModal')).hide();
+        showToast(id ? '{{ _('update') }}' : '{{ _('create') }}');
+        loadServices();
+    } else {
+        errorEl.textContent = data.error || 'Error';
+        errorEl.classList.remove('d-none');
+    }
+    return false;
+}
+
+async function deleteService(id) {
+    if (!confirm('{{ _('confirm_delete') }}')) return;
+    await apiRequest(`/services/${id}`, { method: 'DELETE' });
+    showToast('{{ _('delete') }}');
+    loadServices();
+}
+</script>
+{% endblock %}

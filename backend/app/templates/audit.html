@@ -1,0 +1,76 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('audit_logs') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h4 class="mb-0"><i class="bi bi-clock-history me-2"></i>{{ _('audit_trail') }}</h4>
+        <hr>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="mb-3">
+            <div class="row g-2">
+                <div class="col-auto">
+                    <select id="filterEntity" class="form-select" onchange="loadAudit()">
+                        <option value="">{{ _('all') }}</option>
+                        <option value="user">{{ _('users') }}</option>
+                        <option value="affair">{{ _('affairs') }}</option>
+                        <option value="task">{{ _('tasks') }}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ _('action') }}</th>
+                        <th>{{ _('entity_type') }}</th>
+                        <th>{{ _('description') }}</th>
+                        <th>{{ _('performed_by') }}</th>
+                        <th>{{ _('timestamp') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="auditTableBody">
+                    <tr><td colspan="5" class="text-center text-muted">{{ _('loading') }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+loadAudit();
+
+async function loadAudit() {
+    const entityType = document.getElementById('filterEntity').value;
+    const params = new URLSearchParams();
+    if (entityType) params.set('entity_type', entityType);
+    params.set('limit', '200');
+
+    const data = await apiRequest(`/audit/logs?${params}`);
+    const tbody = document.getElementById('auditTableBody');
+
+    if (!data || !data.logs || data.logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">{{ _('no_data') }}</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = data.logs.map(log => `
+        <tr>
+            <td><span class="badge bg-${log.action === 'create' ? 'success' : log.action === 'update' ? 'warning' : 'danger'}">${log.action}</span></td>
+            <td>${log.entity_type}</td>
+            <td>${log.description || '-'}</td>
+            <td>${log.performed_by_name || '-'}</td>
+            <td>${formatDate(log.created_at)}</td>
+        </tr>
+    `).join('');
+}
+</script>
+{% endblock %}

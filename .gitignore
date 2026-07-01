@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+.env
+.cse_app/
+cse_app/.dart_tool/
+cse_app/.packages
+cse_app/.flutter-plugins
+cse_app/.flutter-plugins-dependencies
+cse_app/build/
+cse_app/.flutter_tool/
