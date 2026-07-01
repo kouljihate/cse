@@ -203,10 +203,10 @@ async function loadServices() {
         <tr>
             <td><strong>${s.name}</strong></td>
             <td>${s.description || '-'}</td>
-            <td>${formatPrice(s.price)}</td>
+            <td dir="ltr">${formatPrice(s.price)}</td>
             <td><span class="badge bg-${s.is_active ? 'success' : 'danger'}">${s.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
             <td><span class="badge bg-info" style="cursor:pointer" onclick="toggleServiceTasks('${s._id}')">${taskCount} ${taskCount === 1 ? '{{ _('task') }}' : '{{ _('tasks') }}'}</span></td>
-            <td><small class="text-muted">${formatDate(s.created_at)}</small></td>
+            <td dir="ltr"><small class="text-muted">${formatDate(s.created_at)}</small></td>
             <td class="table-actions">
                 <button class="btn btn-sm btn-outline-primary" onclick="editService('${s._id}')" title="{{ _('edit') }}">
                     <i class="bi bi-pencil"></i>
