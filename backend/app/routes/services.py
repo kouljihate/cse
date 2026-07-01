@@ -55,6 +55,8 @@ def create_service():
     db = get_db()
     data = request.get_json()
     task_ids = data.pop("task_ids", None)
+    if not task_ids or len(task_ids) < 1:
+        return jsonify({"error": "At least one task must be assigned to the service"}), 400
     try:
         service_data = ServiceCreate(**data)
     except Exception as e:
@@ -108,6 +110,8 @@ def update_service(service_id):
     db = get_db()
     data = request.get_json()
     task_ids = data.pop("task_ids", None)
+    if task_ids is not None and len(task_ids) < 1:
+        return jsonify({"error": "At least one task must be assigned to the service"}), 400
     try:
         update_data = ServiceUpdate(**data)
     except Exception as e:

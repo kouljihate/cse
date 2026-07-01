@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, make_response
 from flask_jwt_extended import JWTManager, decode_token
 from config import settings, VERSION
 from app.translations import t as translate
+from app.socketio_server import socketio
 
 jwt = JWTManager()
 
@@ -26,6 +27,7 @@ def create_app():
     from app.routes.reports import reports_bp
     from app.routes.audit import audit_bp
     from app.routes.customers import customers_bp
+    from app.routes.activities import activities_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
@@ -36,6 +38,7 @@ def create_app():
     app.register_blueprint(reports_bp)
     app.register_blueprint(audit_bp)
     app.register_blueprint(customers_bp)
+    app.register_blueprint(activities_bp)
 
     @app.context_processor
     def inject_globals():
@@ -58,10 +61,13 @@ def create_app():
             except Exception:
                 pass
 
+        user_id = str(user["_id"]) if user else None
+
         return dict(
             _=_,
             lang=lang,
             user=user,
+            user_id=user_id,
             now=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
             version=VERSION,
         )
@@ -88,6 +94,15 @@ def create_app():
 
     @app.route("/dashboard")
     def dashboard_page():
+        token = request.cookies.get("access_token")
+        if token:
+            try:
+                decoded = decode_token(token)
+                claims = decoded
+                if claims.get("role") == "employee":
+                    return redirect("/activities")
+            except Exception:
+                pass
         return render_template("dashboard.html", active_page="dashboard")
 
     @app.route("/tasks")
@@ -118,6 +133,18 @@ def create_app():
     def audit_page():
         return render_template("audit.html", active_page="audit")
 
+    @app.route("/activities")
+    def activities_page():
+        return render_template("activities.html", active_page="activities")
+
+    @app.route("/notifications")
+    def notifications_page():
+        return render_template("notifications.html", active_page="notifications")
+
+    @app.route("/messaging")
+    def messaging_page():
+        return render_template("messaging.html", active_page="messaging")
+
     @app.route("/customers")
     def customers_page():
         return render_template("customers.html", active_page="customers")
@@ -125,6 +152,8 @@ def create_app():
     @app.route("/customers/<customer_id>")
     def customer_detail_page(customer_id):
         return render_template("customer_detail.html", active_page="customers", customer_id=customer_id)
+
+    socketio.init_app(app, cors_allowed_origins="*")
 
     @app.route("/api/health")
     def health():

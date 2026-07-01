@@ -13,17 +13,17 @@
             {% block auth_content %}{% endblock %}
 
             <hr class="my-4">
-            <div class="language-selector">
-                <div class="btn-group btn-group-sm" role="group">
-                    <a href="?lang=en" class="btn btn-outline-secondary {{ 'active btn-primary text-white' if lang == 'en' }}">EN</a>
-                    <a href="?lang=ar" class="btn btn-outline-secondary {{ 'active btn-primary text-white' if lang == 'ar' }}">AR</a>
-                    <a href="?lang=fr" class="btn btn-outline-secondary {{ 'active btn-primary text-white' if lang == 'fr' }}">FR</a>
+            <div class="auth-card-footer">
+                <span class="version-badge">v{{ version }}</span>
+                <div class="language-selector">
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a href="?lang=en" class="btn btn-outline-secondary {{ 'active btn-primary text-white' if lang == 'en' }}">EN</a>
+                        <a href="?lang=ar" class="btn btn-outline-secondary {{ 'active btn-primary text-white' if lang == 'ar' }}">عربي</a>
+                        <a href="?lang=fr" class="btn btn-outline-secondary {{ 'active btn-primary text-white' if lang == 'fr' }}">FR</a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-<div class="auth-footer">
-    <span class="version-badge">v{{ version }}</span>
 </div>
 {% endblock %}

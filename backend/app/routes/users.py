@@ -111,3 +111,6 @@ def list_employees():
     db = get_db()
     employees = list(db.users.find({"role": "employee", "is_active": True}).sort("full_name", 1))
     return jsonify([UserResponse(**e).model_dump(by_alias=True) for e in employees]), 200
+
+
+

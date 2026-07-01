@@ -83,16 +83,75 @@ function showToast(message, type = 'success') {
 function formatDate(iso) {
     if (!iso) return '';
     try {
-        return new Date(iso).toLocaleDateString();
+        const d = new Date(iso);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        const ss = String(d.getSeconds()).padStart(2, '0');
+        return dd + '/' + mm + '/' + yyyy + ' ' + hh + ':' + min + ':' + ss;
     } catch {
         return iso;
     }
 }
 
+let socket = null;
+window.onlineUserIds = new Set();
+
+function initSocketIO() {
+    const token = localStorage.getItem('access_token');
+    if (!token || socket) return;
+
+    socket = io({
+        query: { token },
+        transports: ['websocket', 'polling'],
+    });
+
+    socket.on('notification', function (data) {
+        showToast(data.title || 'New notification', 'info');
+        if (typeof updateNotificationBadge === 'function') {
+            updateNotificationBadge();
+        }
+        if (window.location.pathname === '/notifications' && typeof loadNotificationsPage === 'function') {
+            loadNotificationsPage();
+        }
+    });
+
+    socket.on('notification_badge', function (data) {
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+            if (data.count > 0) {
+                badge.textContent = data.count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    });
+
+    socket.on('online_users', function (data) {
+        window.onlineUserIds = new Set(data.user_ids || []);
+    });
+
+    socket.on('disconnect', function () {
+        window.onlineUserIds = new Set();
+    });
+}
+
+async function sendNotification(userId, message, title) {
+    return apiRequest('/activities/notifications/send', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: userId, message: message, title: title || 'Notification' }),
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    const lang = localStorage.getItem('lang') || 'en';
+    const lang = document.documentElement.lang || localStorage.getItem('lang') || 'en';
     document.documentElement.lang = lang;
     if (lang === 'ar') {
         document.documentElement.dir = 'rtl';
     }
+    localStorage.setItem('lang', lang);
+    if (isAuthenticated()) initSocketIO();
 });

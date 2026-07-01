@@ -34,7 +34,7 @@
 </div>
 
 <div class="modal fade" id="serviceModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="serviceModalTitle">{{ _('create_service') }}</h5>
@@ -49,7 +49,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">{{ _('service_description') }}</label>
-                        <textarea name="description" class="form-control" rows="3"></textarea>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">{{ _('service_price') }}</label>
@@ -61,8 +61,23 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">{{ _('tasks') }}</label>
-                        <div id="taskCheckboxList" class="border rounded p-2" style="max-height:180px;overflow-y:auto">
-                            <p class="text-muted mb-0 small">{{ _('loading') }}</p>
+                        <div class="row dual-pane">
+                            <div class="col-6">
+                                <div class="border rounded p-2 bg-light">
+                                    <small class="fw-bold text-muted d-block mb-1">{{ _('available_tasks') }}</small>
+                                    <div id="availableTasksList" class="task-pane" style="min-height:150px;max-height:200px;overflow-y:auto">
+                                        <p class="text-muted mb-0 small">{{ _('loading') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="border rounded p-2 bg-light">
+                                    <small class="fw-bold text-muted d-block mb-1">{{ _('selected_tasks') }}</small>
+                                    <ul id="selectedTasksList" class="list-group list-group-flush task-pane" style="min-height:150px;max-height:200px;overflow-y:auto">
+                                        <li class="text-muted small py-2">{{ _('no_selected_tasks') }}</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div id="serviceError" class="alert alert-danger d-none"></div>
@@ -88,26 +103,78 @@ document.addEventListener('DOMContentLoaded', () => {
 let serviceTasksCache = {};
 let allTasksList = [];
 
-async function loadTaskCheckboxes(selectedIds = []) {
-    const container = document.getElementById('taskCheckboxList');
+async function loadTaskPanes(selectedIds = []) {
+    const availableEl = document.getElementById('availableTasksList');
+    const selectedEl = document.getElementById('selectedTasksList');
     if (!allTasksList.length) {
         const data = await apiRequest('/tasks/');
         if (data) allTasksList = data;
     }
     if (!allTasksList.length) {
-        container.innerHTML = '<p class="text-muted mb-0 small">{{ _('no_tasks') }}</p>';
+        availableEl.innerHTML = '<p class="text-muted mb-0 small">{{ _('no_available_tasks') }}</p>';
+        selectedEl.innerHTML = '<li class="text-muted small py-2">{{ _('no_selected_tasks') }}</li>';
         return;
     }
-    container.innerHTML = allTasksList.map(t => `
-        <div class="form-check">
-            <input class="form-check-input task-checkbox" type="checkbox" value="${t._id}" id="task-${t._id}" ${selectedIds.includes(t._id) ? 'checked' : ''}>
-            <label class="form-check-label small" for="task-${t._id}">${t.title} ${t.assigned_to_name ? '(' + t.assigned_to_name + ')' : ''}</label>
+    const selectedSet = new Set(selectedIds);
+    availableEl.innerHTML = allTasksList.filter(t => !selectedSet.has(t._id)).map(t => `
+        <div class="task-item d-flex align-items-center gap-2 px-2 py-1" onclick="moveToRight('${t._id}')" style="cursor:pointer">
+            <i class="bi bi-plus-circle text-success small"></i>
+            <span class="small">${t.title}</span>
         </div>
-    `).join('');
+    `).join('') || '<p class="text-muted mb-0 small">{{ _('no_available_tasks') }}</p>';
+    renderSelectedTasks(selectedIds);
+}
+
+function renderSelectedTasks(ids) {
+    const selectedEl = document.getElementById('selectedTasksList');
+    if (!ids.length) {
+        selectedEl.innerHTML = '<li class="text-muted small py-2">{{ _('no_selected_tasks') }}</li>';
+        return;
+    }
+    const map = {};
+    allTasksList.forEach(t => map[t._id] = t);
+    selectedEl.innerHTML = ids.map((id, idx) => {
+        const t = map[id];
+        if (!t) return '';
+        return `<li class="list-group-item d-flex align-items-center gap-2 px-2 py-1 small" data-id="${id}">
+            <span class="fw-bold text-muted">${idx + 1}.</span>
+            <span class="flex-grow-1">${t.title}</span>
+            <i class="bi bi-x-circle text-danger" style="cursor:pointer" onclick="moveToLeft('${id}')"></i>
+        </li>`;
+    }).join('');
+}
+
+function moveToRight(id) {
+    const availableEl = document.getElementById('availableTasksList');
+    const item = availableEl.querySelector(`[onclick*="'${id}'"]`);
+    if (!item) return;
+    const currentSelected = getSelectedTaskIds();
+    currentSelected.push(id);
+    item.remove();
+    if (!availableEl.children.length) {
+        availableEl.innerHTML = '<p class="text-muted mb-0 small">{{ _('no_available_tasks') }}</p>';
+    }
+    renderSelectedTasks(currentSelected);
+}
+
+function moveToLeft(id) {
+    const selectedIds = getSelectedTaskIds().filter(sid => sid !== id);
+    const t = allTasksList.find(x => x._id === id);
+    const availableEl = document.getElementById('availableTasksList');
+    if (availableEl.querySelector('.text-muted')) {
+        availableEl.innerHTML = '';
+    }
+    availableEl.insertAdjacentHTML('beforeend', `
+        <div class="task-item d-flex align-items-center gap-2 px-2 py-1" onclick="moveToRight('${id}')" style="cursor:pointer">
+            <i class="bi bi-plus-circle text-success small"></i>
+            <span class="small">${t.title}</span>
+        </div>
+    `);
+    renderSelectedTasks(selectedIds);
 }
 
 function getSelectedTaskIds() {
-    return Array.from(document.querySelectorAll('.task-checkbox:checked')).map(cb => cb.value);
+    return Array.from(document.querySelectorAll('#selectedTasksList li[data-id]')).map(li => li.dataset.id);
 }
 
 async function loadServices() {
@@ -173,7 +240,7 @@ function openCreateModal() {
     document.getElementById('serviceForm').reset();
     document.getElementById('serviceActive').checked = true;
     document.getElementById('serviceError').classList.add('d-none');
-    loadTaskCheckboxes([]);
+    loadTaskPanes([]);
     new bootstrap.Modal(document.getElementById('serviceModal')).show();
 }
 
@@ -189,7 +256,7 @@ async function editService(id) {
     document.getElementById('serviceActive').checked = data.is_active !== false;
     document.getElementById('serviceError').classList.add('d-none');
 
-    loadTaskCheckboxes(data.task_ids || []);
+    loadTaskPanes(data.task_ids || []);
     new bootstrap.Modal(document.getElementById('serviceModal')).show();
 }
 

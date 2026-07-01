@@ -1,0 +1,120 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('messaging') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-chat-dots me-2"></i>{{ _('messaging') }}</h4>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-people me-1"></i>{{ _('select_customers') }}</span>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="selectAllCheck" onchange="toggleSelectAll(this)">
+                    <label class="form-check-label small" for="selectAllCheck">{{ _('select_all') }}</label>
+                </div>
+            </div>
+            <div class="card-body p-0" style="max-height: 400px; overflow-y: auto;">
+                <div id="customerList" class="list-group list-group-flush">
+                    <div class="text-center text-muted py-3">{{ _('loading') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-chat-square-text me-1"></i>{{ _('send_whatsapp') }}
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">{{ _('message_text') }}</label>
+                    <textarea id="messageInput" class="form-control" rows="6" placeholder="{{ _('message_placeholder') }}"></textarea>
+                </div>
+                <div id="selectedCount" class="text-muted small mb-2">0 {{ _('select_customers')|lower }}</div>
+                <button class="btn btn-success" onclick="sendWhatsApp()">
+                    <i class="bi bi-whatsapp me-1"></i>{{ _('send') }}
+                </button>
+                <div id="messagingError" class="alert alert-danger mt-3 d-none"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', loadCustomers);
+
+async function loadCustomers() {
+    const data = await apiRequest('/customers/');
+    const el = document.getElementById('customerList');
+    if (!data || data.length === 0) {
+        el.innerHTML = '<div class="text-center text-muted py-3">{{ _('no_customers') }}</div>';
+        return;
+    }
+    el.innerHTML = data.map(c => `
+        <label class="list-group-item d-flex align-items-center gap-2 border-0">
+            <input class="form-check-input customer-check" type="checkbox" value="${c._id}"
+                data-phone="${c.phone || ''}" data-name="${c.full_name}">
+            <span class="flex-grow-1">${c.full_name}</span>
+            <small class="text-muted">${c.phone || '<span class="text-danger">{{ _('no_phone') }}</span>'}</small>
+        </label>
+    `).join('');
+}
+
+function toggleSelectAll(el) {
+    document.querySelectorAll('.customer-check').forEach(cb => cb.checked = el.checked);
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const count = document.querySelectorAll('.customer-check:checked').length;
+    document.getElementById('selectedCount').textContent = count + ' {{ _('select_customers')|lower }}';
+}
+
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('customer-check')) updateSelectedCount();
+});
+
+async function sendWhatsApp() {
+    const errorEl = document.getElementById('messagingError');
+    errorEl.classList.add('d-none');
+
+    const checked = document.querySelectorAll('.customer-check:checked');
+    if (checked.length === 0) {
+        errorEl.textContent = '{{ _('no_customer_selected') }}';
+        errorEl.classList.remove('d-none');
+        return;
+    }
+
+    const message = document.getElementById('messageInput').value.trim();
+    if (!message) {
+        errorEl.textContent = '{{ _('no_message') }}';
+        errorEl.classList.remove('d-none');
+        return;
+    }
+
+    let opened = 0;
+    for (const cb of checked) {
+        const phone = cb.dataset.phone;
+        if (!phone) continue;
+        const text = encodeURIComponent(message);
+        const url = `https://wa.me/${phone.replace(/[^0-9]/g, '')}?text=${text}`;
+        window.open(url, '_blank');
+        opened++;
+        await new Promise(r => setTimeout(r, 800));
+    }
+
+    if (opened === 0) {
+        errorEl.textContent = '{{ _('no_customer_selected') }}';
+        errorEl.classList.remove('d-none');
+    } else {
+        showToast('{{ _('whatsapp_sent') }}');
+    }
+}
+</script>
+{% endblock %}
