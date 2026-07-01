@@ -28,8 +28,7 @@ class AuditLogResponse(BaseModel):
     @classmethod
     def convert_object_id(cls, data):
         if isinstance(data, dict):
-            if "_id" in data and isinstance(data["_id"], ObjectId):
-                data["_id"] = str(data["_id"])
-            if "entity_id" in data and isinstance(data.get("entity_id"), ObjectId):
-                data["entity_id"] = str(data["entity_id"])
+            for key in ("_id", "entity_id", "performed_by"):
+                if key in data and isinstance(data[key], ObjectId):
+                    data[key] = str(data[key])
         return data
