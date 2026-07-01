@@ -135,3 +135,60 @@ def assignations():
 
     assignations = list(db.tasks.aggregate(pipeline))
     return jsonify(assignations), 200
+
+
+@dashboard_bp.route("/employee-stats", methods=["GET"])
+@jwt_required()
+def employee_stats():
+    db = get_db()
+    identity = get_jwt_identity()
+    claims = get_jwt()
+    role = claims.get("role")
+
+    if role != "employee":
+        return jsonify({"error": "Employee access required"}), 403
+
+    pending = db.activities.count_documents({"assigned_to": ObjectId(identity), "status": "pending"})
+    in_progress = db.activities.count_documents({"assigned_to": ObjectId(identity), "status": "in_progress"})
+    completed = db.activities.count_documents({"assigned_to": ObjectId(identity), "status": "completed"})
+    unread = db.notifications.count_documents({"user_id": ObjectId(identity), "read": False})
+
+    recent = list(db.activities.aggregate([
+        {"$match": {"assigned_to": ObjectId(identity)}},
+        {"$sort": {"created_at": -1}},
+        {"$limit": 10},
+        {
+            "$lookup": {
+                "from": "users",
+                "localField": "customer_id",
+                "foreignField": "_id",
+                "as": "customer_user",
+            }
+        },
+        {"$unwind": {"path": "$customer_user", "preserveNullAndEmptyArrays": True}},
+        {
+            "$addFields": {
+                "customer_name": "$customer_user.full_name",
+            }
+        },
+        {"$project": {"customer_user": 0}},
+    ]))
+    processed = []
+    for a in recent:
+        entry = {}
+        for k, v in a.items():
+            if isinstance(v, ObjectId):
+                entry[k] = str(v)
+            elif isinstance(v, datetime):
+                entry[k] = v.isoformat()
+            else:
+                entry[k] = v
+        processed.append(entry)
+
+    return jsonify({
+        "pending_activities": pending,
+        "in_progress_activities": in_progress,
+        "completed_activities": completed,
+        "unread_notifications": unread,
+        "recent_activities": processed,
+    }), 200

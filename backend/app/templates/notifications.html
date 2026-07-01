@@ -113,7 +113,7 @@ async function openSendModal() {
 
     const users = await apiRequest('/users/');
 
-    if (users) {
+    if (Array.isArray(users)) {
         users.forEach(u => {
             if (u._id === '{{ user_id }}') return;
             const dot = window.onlineUserIds && window.onlineUserIds.has(u._id) ? ' 🟢' : ' 🔴';

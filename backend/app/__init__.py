@@ -100,7 +100,7 @@ def create_app():
                 decoded = decode_token(token)
                 claims = decoded
                 if claims.get("role") == "employee":
-                    return redirect("/activities")
+                    return redirect("/employee-dashboard")
             except Exception:
                 pass
         return render_template("dashboard.html", active_page="dashboard")
@@ -140,6 +140,10 @@ def create_app():
     @app.route("/notifications")
     def notifications_page():
         return render_template("notifications.html", active_page="notifications")
+
+    @app.route("/employee-dashboard")
+    def employee_dashboard_page():
+        return render_template("employee_dashboard.html", active_page="employee_dashboard")
 
     @app.route("/messaging")
     def messaging_page():

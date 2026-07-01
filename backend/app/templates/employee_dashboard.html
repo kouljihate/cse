@@ -1,0 +1,184 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('dashboard') }} - {{ _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4 class="mb-0"><i class="bi bi-grid-1x2-fill me-2"></i>{{ _('my_dashboard') }}</h4>
+        <hr>
+    </div>
+</div>
+
+<div class="row g-3 mb-4" id="statsCards">
+    <div class="col-md-3 col-6">
+        <a href="/activities" class="text-decoration-none">
+            <div class="card card-dashboard border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-warning" id="empPendingActivities">-</h5>
+                    <p class="card-text text-muted mb-0">{{ _('pending') }}</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6">
+        <a href="/activities" class="text-decoration-none">
+            <div class="card card-dashboard border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info" id="empInProgressActivities">-</h5>
+                    <p class="card-text text-muted mb-0">{{ _('in_progress') }}</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6">
+        <a href="/activities" class="text-decoration-none">
+            <div class="card card-dashboard border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success" id="empCompletedActivities">-</h5>
+                    <p class="card-text text-muted mb-0">{{ _('completed') }}</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card card-dashboard border-primary">
+            <div class="card-body text-center">
+                <h5 class="card-title text-primary" id="empUnreadNotifs">-</h5>
+                <p class="card-text text-muted mb-0">{{ _('notifications') }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">{{ _('my_activities_status') }}</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="empStatusChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">{{ _('recent_activities') }}</h6>
+            </div>
+            <div class="card-body">
+                <div id="empRecentList">
+                    <p class="text-muted mb-0">{{ _('loading') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">{{ _('my_activities') }}</h6>
+        <a href="/activities" class="btn btn-sm btn-cse">{{ _('view_all') }}</a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ _('activity_title') }}</th>
+                        <th>{{ _('customer') }}</th>
+                        <th>{{ _('status') }}</th>
+                        <th>{{ _('created_at') }}</th>
+                        <th>{{ _('actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="empActivitiesBody">
+                    <tr><td colspan="5" class="text-center text-muted">{{ _('loading') }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', loadEmployeeDashboard);
+
+async function loadEmployeeDashboard() {
+    const data = await apiRequest('/dashboard/employee-stats');
+    if (!data) return;
+
+    document.getElementById('empPendingActivities').textContent = data.pending_activities;
+    document.getElementById('empInProgressActivities').textContent = data.in_progress_activities;
+    document.getElementById('empCompletedActivities').textContent = data.completed_activities;
+    document.getElementById('empUnreadNotifs').textContent = data.unread_notifications;
+
+    new Chart(document.getElementById('empStatusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['{{ _('pending') }}', '{{ _('in_progress') }}', '{{ _('completed') }}'],
+            datasets: [{
+                data: [data.pending_activities, data.in_progress_activities, data.completed_activities],
+                backgroundColor: ['#ffc107', '#0d6efd', '#198754'],
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    const recentEl = document.getElementById('empRecentList');
+    if (data.recent_activities?.length) {
+        recentEl.innerHTML = '<div class="activity-timeline">' +
+            data.recent_activities.map(a => `
+                <div class="activity-item">
+                    <strong>${a.title}</strong>
+                    <span class="badge bg-${a.status === 'completed' ? 'success' : a.status === 'in_progress' ? 'info' : 'warning'}">${a.status}</span>
+                    <br><small class="text-muted">${formatDate(a.created_at)}</small>
+                </div>
+            `).join('') +
+        '</div>';
+    } else {
+        recentEl.innerHTML = '<p class="text-muted mb-0">{{ _('no_data') }}</p>';
+    }
+
+    const tbody = document.getElementById('empActivitiesBody');
+    if (data.recent_activities?.length) {
+        tbody.innerHTML = data.recent_activities.map(a => `
+            <tr>
+                <td><strong>${a.title}</strong></td>
+                <td>${a.customer_name || '-'}</td>
+                <td><span class="badge bg-${a.status === 'completed' ? 'success' : a.status === 'in_progress' ? 'info' : 'warning'}">${a.status}</span></td>
+                <td><small class="text-muted">${formatDate(a.created_at)}</small></td>
+                <td class="table-actions">
+                    ${a.status === 'pending' ? `
+                        <button class="btn btn-sm btn-outline-info" onclick="quickUpdateStatus('${a._id}','in_progress')" title="{{ _('accept') }}">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                    ` : ''}
+                    ${a.status === 'in_progress' ? `
+                        <button class="btn btn-sm btn-outline-success" onclick="quickUpdateStatus('${a._id}','completed')" title="{{ _('complete') }}">
+                            <i class="bi bi-check-all"></i>
+                        </button>
+                    ` : ''}
+                </td>
+            </tr>
+        `).join('');
+    } else {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">{{ _('no_activities') }}</td></tr>';
+    }
+}
+
+async function quickUpdateStatus(id, status) {
+    const data = await apiRequest(`/activities/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+    });
+    if (data._id || data.status) {
+        showToast('{{ _('status_updated') }}');
+        loadEmployeeDashboard();
+        if (typeof updateNotificationBadge === 'function') updateNotificationBadge();
+    }
+}
+</script>
+{% endblock %}

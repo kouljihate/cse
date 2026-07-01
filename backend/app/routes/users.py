@@ -22,7 +22,6 @@ def admin_required(f):
 
 @users_bp.route("/", methods=["GET"])
 @jwt_required()
-@admin_required
 def list_users():
     db = get_db()
     role = request.args.get("role")

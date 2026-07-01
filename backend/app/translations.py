@@ -209,6 +209,10 @@ TRANSLATIONS = {
         "required": "required",
         "successful": "successful",
         "none": "None",
+        "my_dashboard": "My Dashboard",
+        "my_activities_status": "My Activities Status",
+        "my_activities": "My Activities",
+        "view_all": "View All",
     },
     "ar": {
         "app_name": "كابينت سيرفيسز إكسبرس",
@@ -409,6 +413,10 @@ TRANSLATIONS = {
         "required": "مطلوب",
         "successful": "ناجح",
         "none": "لا شيء",
+        "my_dashboard": "لوحة التحكم الخاصة بي",
+        "my_activities_status": "حالة أنشطتي",
+        "my_activities": "أنشطتي",
+        "view_all": "عرض الكل",
     },
     "fr": {
         "app_name": "Cabinet Services Express",
@@ -609,6 +617,10 @@ TRANSLATIONS = {
         "required": "requis",
         "successful": "réussi",
         "none": "Aucun",
+        "my_dashboard": "Mon Tableau de Bord",
+        "my_activities_status": "Statut de Mes Activités",
+        "my_activities": "Mes Activités",
+        "view_all": "Voir Tout",
     },
 }
 

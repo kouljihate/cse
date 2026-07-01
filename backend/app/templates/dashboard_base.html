@@ -67,6 +67,11 @@
                 </li>
                 {% elif user.role == 'employee' %}
                 <li class="nav-item">
+                    <a class="nav-link text-white {{ 'active' if active_page == 'employee_dashboard' }}" href="/employee-dashboard" data-bs-dismiss="offcanvas">
+                        <i class="bi bi-grid-1x2-fill me-2"></i>{{ _('dashboard') }}
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link text-white {{ 'active' if active_page == 'activities' }}" href="/activities" data-bs-dismiss="offcanvas">
                         <i class="bi bi-activity me-2"></i>{{ _('activity_management') }}
                     </a>
@@ -141,6 +146,11 @@
                 </a>
             </li>
             {% elif user.role == 'employee' %}
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if active_page == 'employee_dashboard' }}" href="/employee-dashboard">
+                    <i class="bi bi-grid-1x2-fill me-2"></i>{{ _('dashboard') }}
+                </a>
+            </li>
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if active_page == 'activities' }}" href="/activities">
                     <i class="bi bi-activity me-2"></i>{{ _('activity_management') }}
@@ -248,12 +258,12 @@ async function loadNotifications() {
         return;
     }
     list.innerHTML = data.map(n => `
-        <li><a class="dropdown-item" href="/activities">
+        <li><button class="dropdown-item border-0" type="button" data-notif-id="${n._id}">
             <small class="fw-bold d-block">${n.title}</small>
             <small class="text-muted d-block">${n.message}</small>
             <small class="text-muted">${formatDate(n.created_at)}</small>
             ${!n.read ? '<span class="badge bg-primary">{{ _('new') }}</span>' : ''}
-        </a></li>
+        </button></li>
     `).join('');
 }
 
@@ -268,6 +278,17 @@ async function updateNotificationBadge() {
     }
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('notificationList').addEventListener('click', function(e) {
+        const btn = e.target.closest('button[data-notif-id]');
+        if (btn) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.location.href = '/activities';
+        }
+    });
+});
+
 async function openHeaderSendModal() {
     document.getElementById('headerSendForm').reset();
     document.getElementById('headerSendError').classList.add('d-none');
@@ -277,7 +298,7 @@ async function openHeaderSendModal() {
 
     const users = await apiRequest('/users/');
 
-    if (users) {
+    if (Array.isArray(users)) {
         users.forEach(u => {
             if (u._id === '{{ user_id }}') return;
             const dot = window.onlineUserIds && window.onlineUserIds.has(u._id) ? ' 🟢' : ' 🔴';
