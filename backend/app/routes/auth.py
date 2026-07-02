@@ -65,6 +65,14 @@ def login():
         additional_claims={"role": user["role"], "username": user["username"]},
     )
 
+    AuditService.log(
+        action="login",
+        entity_type="auth",
+        entity_id=str(user["_id"]),
+        performed_by=str(user["_id"]),
+        description=f"User '{user.get('username')}' logged in",
+    )
+
     resp = jsonify({
         "access_token": access_token,
         "user": UserResponse(**user).model_dump(by_alias=True),
@@ -77,6 +85,24 @@ def login():
         path="/",
     )
     return resp, 200
+
+
+@auth_bp.route("/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    user_id = get_jwt_identity()
+    db = get_db()
+    user = db.users.find_one({"_id": ObjectId(user_id)})
+
+    AuditService.log(
+        action="logout",
+        entity_type="auth",
+        entity_id=user_id,
+        performed_by=user_id,
+        description=f"User '{user.get('username') if user else 'Unknown'}' logged out",
+    )
+
+    return jsonify({"ok": True}), 200
 
 
 @auth_bp.route("/profile", methods=["GET"])

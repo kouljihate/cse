@@ -38,7 +38,10 @@ async function login(username, password) {
     return data;
 }
 
-function logout() {
+async function logout() {
+    try {
+        await apiRequest('/auth/logout', { method: 'POST' });
+    } catch (_) {}
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     window.location.href = '/login';

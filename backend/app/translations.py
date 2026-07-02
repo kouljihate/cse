@@ -157,6 +157,7 @@ TRANSLATIONS = {
         "changes": "Changes",
         "timestamp": "Timestamp",
         "audit_trail": "Audit Trail",
+        "auth_logs": "Login / Logout",
         # Messaging
         "send_whatsapp": "Send WhatsApp Message",
         "select_customers": "Select Customers",
@@ -363,6 +364,7 @@ TRANSLATIONS = {
         "changes": "التغييرات",
         "timestamp": "الطابع الزمني",
         "audit_trail": "سجل التدقيق",
+        "auth_logs": "تسجيل الدخول / الخروج",
         "messaging": "خدمة الرسائل",
         "send_whatsapp": "إرسال رسالة واتساب",
         "select_customers": "اختيار العملاء",
@@ -568,6 +570,7 @@ TRANSLATIONS = {
         "changes": "Modifications",
         "timestamp": "Horodatage",
         "audit_trail": "Journal d'audit",
+        "auth_logs": "Connexion / Déconnexion",
         "messaging": "Service de Messagerie",
         "send_whatsapp": "Envoyer un message WhatsApp",
         "select_customers": "Sélectionner des clients",
