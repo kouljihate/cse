@@ -22,8 +22,36 @@
                         <a href="?lang=fr" class="btn btn-outline-secondary {{ 'active btn-primary text-white' if lang == 'fr' }}">FR</a>
                     </div>
                 </div>
+                <span id="db-status" class="db-status-icon" title="{{ _('database_status') }}">
+                    <i class="bi bi-database"></i>
+                </span>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+(function() {
+    var dbIcon = document.getElementById('db-status');
+    if (!dbIcon) return;
+
+    function checkDb() {
+        fetch('/api/health')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.db === 'connected') {
+                    dbIcon.className = 'db-status-icon db-ok';
+                } else {
+                    dbIcon.className = 'db-status-icon db-err';
+                }
+            })
+            .catch(function() {
+                dbIcon.className = 'db-status-icon db-err';
+            });
+    }
+
+    checkDb();
+    setInterval(checkDb, 30000);
+})();
+</script>
 {% endblock %}

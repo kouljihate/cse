@@ -28,6 +28,7 @@ TRANSLATIONS = {
         "all": "All",
         "export_pdf": "Export PDF",
         "select_language": "Select Language",
+        "database_status": "Database Status",
         # Nav
         "dashboard": "Dashboard",
         "tasks": "Tasks",
@@ -244,6 +245,7 @@ TRANSLATIONS = {
         "all": "الكل",
         "export_pdf": "تصدير PDF",
         "select_language": "اختر اللغة",
+        "database_status": "حالة قاعدة البيانات",
         "dashboard": "لوحة التحكم",
         "tasks": "المهام",
         "affairs": "الملفات",
@@ -450,6 +452,7 @@ TRANSLATIONS = {
         "all": "Tous",
         "export_pdf": "Exporter PDF",
         "select_language": "Choisir la langue",
+        "database_status": "État de la base de données",
         "dashboard": "Tableau de bord",
         "tasks": "Tâches",
         "affairs": "Affaires",

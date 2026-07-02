@@ -161,6 +161,11 @@ def create_app():
 
     @app.route("/api/health")
     def health():
-        return {"status": "ok"}
+        from app.database import get_db
+        try:
+            get_db().command("ping")
+            return {"status": "ok", "db": "connected"}
+        except Exception:
+            return {"status": "error", "db": "disconnected"}, 503
 
     return app

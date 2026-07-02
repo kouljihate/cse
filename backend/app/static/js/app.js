@@ -119,6 +119,9 @@ function initSocketIO() {
         if (window.location.pathname === '/notifications' && typeof loadNotificationsPage === 'function') {
             loadNotificationsPage();
         }
+        if (data.type && data.type.startsWith('activity_') && window.location.pathname === '/activities' && typeof loadActivities === 'function') {
+            loadActivities();
+        }
     });
 
     socket.on('notification_badge', function (data) {

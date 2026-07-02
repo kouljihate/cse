@@ -1,9 +1,16 @@
+@font-face {
+    font-family: 'Adarghal';
+    src: url('/static/fonts/adarghal.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 :root {
     --cse-font: 'Comfortaa', sans-serif;
 }
 
 :root:lang(ar) {
-    --cse-font: 'Ruwudu', serif;
+    --cse-font: 'Adarghal', serif;
 }
 
 body {
@@ -112,6 +119,21 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6,
     color: #6c757d;
     padding: 0.15rem 0.5rem;
     border-radius: 3px;
+}
+
+.db-status-icon {
+    font-size: 1.3rem;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.3s ease;
+}
+
+.db-status-icon.db-ok {
+    color: #28a745;
+}
+
+.db-status-icon.db-err {
+    color: #dc3545;
 }
 
 [dir="rtl"] .auth-card-footer {
