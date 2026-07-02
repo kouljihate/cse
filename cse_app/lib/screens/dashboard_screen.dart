@@ -176,6 +176,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _statCard('Users', '${_stats!['users_count']}', Colors.orange),
         if (_stats!['services_count'] != null)
           _statCard('Services', '${_stats!['services_count']}', Colors.purple),
+        if (_stats!['total_activities'] != null)
+          _statCard('Activities', '${_stats!['total_activities']}', Colors.teal),
       ],
     );
   }

@@ -58,6 +58,16 @@
             </div>
         </a>
     </div>
+    <div class="col-md-3 col-6">
+        <a href="/activities" class="text-decoration-none">
+            <div class="card card-dashboard border-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-primary" id="totalActivities">-</h5>
+                    <p class="card-text text-muted mb-0">{{ _('total_activities') }}</p>
+                </div>
+            </div>
+        </a>
+    </div>
     {% endif %}
     {% if user.role == 'customer' %}
     <div class="col-md-3 col-6">
@@ -133,6 +143,9 @@ async function loadDashboard() {
     if (data.customers_count !== undefined) {
         document.getElementById('totalCustomers').textContent = data.customers_count;
     }
+    if (data.total_activities !== undefined) {
+        document.getElementById('totalActivities').textContent = data.total_activities;
+    }
     if (data.open_tasks !== undefined) {
         document.getElementById('openTasks').textContent = data.open_tasks;
     }
@@ -140,29 +153,31 @@ async function loadDashboard() {
         document.getElementById('completedTasks').textContent = data.completed_tasks;
     }
 
-    new Chart(document.getElementById('statusChart'), {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(data.tasks_by_status).map(k => k.replace('_', ' ')),
-            datasets: [{
-                data: Object.values(data.tasks_by_status),
-                backgroundColor: ['#ffc107', '#0d6efd', '#198754', '#dc3545'],
-            }]
-        },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-    });
+    try {
+        new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(data.tasks_by_status || {}).map(k => k.replace('_', ' ')),
+                datasets: [{
+                    data: Object.values(data.tasks_by_status || {}),
+                    backgroundColor: ['#ffc107', '#0d6efd', '#198754', '#dc3545'],
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
 
-    new Chart(document.getElementById('priorityChart'), {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(data.tasks_by_priority).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
-            datasets: [{
-                data: Object.values(data.tasks_by_priority),
-                backgroundColor: ['#6c757d', '#0d6efd', '#ffc107', '#dc3545'],
-            }]
-        },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-    });
+        new Chart(document.getElementById('priorityChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(data.tasks_by_priority || {}).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+                datasets: [{
+                    data: Object.values(data.tasks_by_priority || {}),
+                    backgroundColor: ['#6c757d', '#0d6efd', '#ffc107', '#dc3545'],
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+    } catch (_) {}
 
     const activitiesEl = document.getElementById('activitiesList');
     if (data.recent_activities?.length) {

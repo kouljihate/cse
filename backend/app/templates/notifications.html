@@ -86,11 +86,11 @@ async function loadNotificationsPage() {
         const typeClass = n.type === 'manual' ? 'primary' : n.type === 'activity_completed' ? 'success' : n.type === 'activity_accepted' ? 'info' : 'secondary';
         return `
         <tr class="${n.read ? '' : 'fw-bold'}">
-            <td><span class="badge bg-${typeClass}">${n.type}</span></td>
+            <td><span class="badge rounded-pill bg-${typeClass}">${n.type}</span></td>
             <td>${n.title}</td>
             <td>${n.message}</td>
             <td><small class="text-muted">${formatDate(n.created_at)}</small></td>
-            <td>${n.read ? '<span class="badge bg-secondary">{{ _('read') }}</span>' : '<span class="badge bg-primary">{{ _('new') }}</span>'}</td>
+            <td>${n.read ? '<span class="badge rounded-pill bg-secondary">{{ _('read') }}</span>' : '<span class="badge rounded-pill bg-primary">{{ _('new') }}</span>'}</td>
         </tr>`;
     }).join('');
 }

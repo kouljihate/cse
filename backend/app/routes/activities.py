@@ -46,6 +46,8 @@ def create_activity():
     admin_id = get_jwt_identity()
     now = datetime.now(timezone.utc)
 
+    notes = data.get("notes", "").strip()
+
     activity_dict = {
         "title": title,
         "description": description or None,
@@ -54,6 +56,7 @@ def create_activity():
         "customer_id": ObjectId(customer_id),
         "task_ids": [ObjectId(tid) for tid in task_ids],
         "status": "pending",
+        "notes": notes or None,
         "created_at": now,
         "updated_at": now,
     }
@@ -446,6 +449,41 @@ def send_notification():
     )
 
     return jsonify({"ok": True}), 201
+
+
+@activities_bp.route("/<activity_id>/note", methods=["PUT"])
+@jwt_required()
+def update_activity_note(activity_id):
+    db = get_db()
+    identity = get_jwt_identity()
+    claims = get_jwt()
+
+    activity = db.activities.find_one({"_id": ObjectId(activity_id)})
+    if not activity:
+        return jsonify({"error": "Activity not found"}), 404
+
+    role = claims.get("role")
+    if role != "admin" and str(activity["assigned_to"]) != identity:
+        return jsonify({"error": "Forbidden"}), 403
+
+    data = request.get_json()
+    note = data.get("note", "").strip() or None
+
+    now = datetime.now(timezone.utc)
+    db.activities.update_one(
+        {"_id": ObjectId(activity_id)},
+        {"$set": {"notes": note, "updated_at": now}},
+    )
+
+    AuditService.log(
+        action="update",
+        entity_type="activity",
+        entity_id=activity_id,
+        performed_by=identity,
+        description=f"Note updated on activity '{activity.get('title')}'",
+    )
+
+    return jsonify({"ok": True, "note": note}), 200
 
 
 @activities_bp.route("/<activity_id>", methods=["DELETE"])

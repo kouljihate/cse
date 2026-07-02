@@ -204,8 +204,8 @@ async function loadServices() {
             <td><strong>${s.name}</strong></td>
             <td>${s.description || '-'}</td>
             <td dir="ltr">${formatPrice(s.price)}</td>
-            <td><span class="badge bg-${s.is_active ? 'success' : 'danger'}">${s.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
-            <td><span class="badge bg-info" style="cursor:pointer" onclick="toggleServiceTasks('${s._id}')">${taskCount} ${taskCount === 1 ? '{{ _('task') }}' : '{{ _('tasks') }}'}</span></td>
+            <td><span class="badge rounded-pill bg-${s.is_active ? 'success' : 'danger'}">${s.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
+            <td><span class="badge rounded-pill bg-info" style="cursor:pointer" onclick="toggleServiceTasks('${s._id}')">${taskCount} ${taskCount === 1 ? '{{ _('task') }}' : '{{ _('tasks') }}'}</span></td>
             <td dir="ltr"><small class="text-muted">${formatDate(s.created_at)}</small></td>
             <td class="table-actions">
                 <button class="btn btn-sm btn-outline-primary" onclick="editService('${s._id}')" title="{{ _('edit') }}">
@@ -222,7 +222,7 @@ async function loadServices() {
                     <strong>{{ _('tasks') }}</strong>
                     ${st.length === 0 ? '<p class="text-muted mb-0">{{ _('no_tasks') }}</p>' :
                       '<table class="table table-sm mb-0"><thead><tr><th>{{ _('task_title') }}</th><th>{{ _('assigned_to') }}</th><th>{{ _('status') }}</th><th>{{ _('priority') }}</th></tr></thead><tbody>' +
-                      st.map(t => `<tr><td>${t.title}</td><td>${t.assigned_to_name || '-'}</td><td><span class="badge bg-${t.status === 'completed' ? 'success' : t.status === 'in_progress' ? 'info' : t.status === 'cancelled' ? 'danger' : 'warning'}">${t.status}</span></td><td><span class="badge bg-${t.priority === 'critical' ? 'danger' : t.priority === 'high' ? 'warning' : t.priority === 'medium' ? 'primary' : 'secondary'}">${t.priority}</span></td></tr>`).join('') +
+                      st.map(t => `<tr><td>${t.title}</td><td>${t.assigned_to_name || '-'}</td><td><span class="badge rounded-pill bg-${t.status === 'completed' ? 'success' : t.status === 'in_progress' ? 'info' : t.status === 'cancelled' ? 'danger' : 'warning'}">${t.status}</span></td><td><span class="badge rounded-pill bg-${t.priority === 'critical' ? 'danger' : t.priority === 'high' ? 'warning' : t.priority === 'medium' ? 'primary' : 'secondary'}">${t.priority}</span></td></tr>`).join('') +
                       '</tbody></table>'}
                 </div>
             </td>

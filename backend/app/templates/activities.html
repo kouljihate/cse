@@ -98,6 +98,24 @@
     </div>
 </div>
 {% endif %}
+
+<div class="modal fade" id="noteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ _('activity_note') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="noteText" class="form-control" rows="5" placeholder="{{ _('enter_note') }}"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('cancel') }}</button>
+                <button type="button" class="btn btn-cse" onclick="saveNote()">{{ _('save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -127,8 +145,8 @@ async function loadActivities() {
             <td>${a.description || '-'}</td>
             <td>${a.customer_name || '-'}</td>
             <td>${a.assigned_to_name || '-'}</td>
-            <td><span class="badge bg-info" style="cursor:pointer" onclick="toggleActTasks('${a._id}')">${taskNames.length} {{ _('tasks') }}</span></td>
-            <td><span class="badge bg-${statusBadge}">${a.status}</span></td>
+            <td><span class="badge rounded-pill bg-info" style="cursor:pointer" onclick="toggleActTasks('${a._id}')">${taskNames.length} {{ _('tasks') }}</span></td>
+            <td><span class="badge rounded-pill bg-${statusBadge}">${a.status}</span></td>
             <td><small class="text-muted">${formatDate(a.created_at)}</small></td>
             <td class="table-actions">
                 ${a.status === 'pending' && (a.assigned_to === '{{ user_id }}' || '{{ user.role }}' === 'admin') ? `
@@ -146,6 +164,9 @@ async function loadActivities() {
                     <i class="bi bi-trash"></i>
                 </button>
                 {% endif %}
+                <button class="btn btn-sm ${a.notes ? 'btn-outline-warning' : 'btn-outline-secondary'}" onclick="openNoteModal('${a._id}','${(a.notes || '').replace(/'/g,"\\'").replace(/\n/g,"\\n")}')" title="{{ _('note') }}">
+                    <i class="bi ${a.notes ? 'bi-sticky-fill' : 'bi-sticky'}"></i>
+                </button>
             </td>
         </tr>
         <tr id="actTasks-${a._id}" style="display:none">
@@ -185,6 +206,27 @@ async function deleteActivity(id) {
             loadActivities();
         });
     });
+}
+
+let noteActivityId = null;
+
+function openNoteModal(id, note) {
+    noteActivityId = id;
+    document.getElementById('noteText').value = note || '';
+    new bootstrap.Modal(document.getElementById('noteModal')).show();
+}
+
+async function saveNote() {
+    const note = document.getElementById('noteText').value.trim();
+    const data = await apiRequest(`/activities/${noteActivityId}/note`, {
+        method: 'PUT',
+        body: JSON.stringify({ note }),
+    });
+    if (data.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('noteModal')).hide();
+        showToast('{{ _('note_saved') }}');
+        loadActivities();
+    }
 }
 
 let actAllTasks = [];

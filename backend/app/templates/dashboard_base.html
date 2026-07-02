@@ -76,6 +76,11 @@
                         <i class="bi bi-bell me-2"></i>{{ _('notifications') }}
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white {{ 'active' if active_page == 'messaging' }}" href="/messaging" data-bs-dismiss="offcanvas">
+                        <i class="bi bi-chat-dots me-2"></i>{{ _('messaging') }}
+                    </a>
+                </li>
                 {% endif %}
             </ul>
             <hr class="border-white opacity-25">
@@ -149,6 +154,11 @@
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if active_page == 'notifications' }}" href="/notifications">
                     <i class="bi bi-bell me-2"></i>{{ _('notifications') }}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if active_page == 'messaging' }}" href="/messaging">
+                    <i class="bi bi-chat-dots me-2"></i>{{ _('messaging') }}
                 </a>
             </li>
             {% endif %}

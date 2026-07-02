@@ -11,6 +11,36 @@
 
 :root:lang(ar) {
     --cse-font: 'Adarghal', serif;
+    --num-font: 'Comfortaa', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 1.1rem;
+}
+
+:root:lang(ar) body,
+:root:lang(ar) h1, :root:lang(ar) h2, :root:lang(ar) h3,
+:root:lang(ar) h4, :root:lang(ar) h5, :root:lang(ar) h6,
+:root:lang(ar) .navbar-brand, :root:lang(ar) .nav-link,
+:root:lang(ar) .btn, :root:lang(ar) .card-title,
+:root:lang(ar) .dropdown-item, :root:lang(ar) .form-label,
+:root:lang(ar) .badge, :root:lang(ar) .table,
+:root:lang(ar) .card-header, :root:lang(ar) .card-body,
+:root:lang(ar) p, :root:lang(ar) small, :root:lang(ar) span,
+:root:lang(ar) li, :root:lang(ar) td, :root:lang(ar) th,
+:root:lang(ar) input, :root:lang(ar) select, :root:lang(ar) textarea {
+    font-size: 1.1rem;
+}
+
+:root:lang(ar) .western-nums,
+:root:lang(ar) td,
+:root:lang(ar) th,
+:root:lang(ar) .card-title,
+:root:lang(ar) .badge,
+:root:lang(ar) .price,
+:root:lang(ar) .date,
+:root:lang(ar) small.text-muted,
+:root:lang(ar) .stat-number,
+:root:lang(ar) .activity-item small,
+:root:lang(ar) .notification-item small {
+    font-family: var(--num-font) !important;
 }
 
 body {
@@ -28,6 +58,10 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6,
 
 .footer {
     margin-top: auto;
+}
+
+.card-header {
+    background-color: #e3f2fd !important;
 }
 
 .card-dashboard {

@@ -93,7 +93,11 @@ function formatDate(iso) {
         const hh = String(d.getHours()).padStart(2, '0');
         const min = String(d.getMinutes()).padStart(2, '0');
         const ss = String(d.getSeconds()).padStart(2, '0');
-        return dd + '/' + mm + '/' + yyyy + ' ' + hh + ':' + min + ':' + ss;
+        const formatted = dd + '/' + mm + '/' + yyyy + ' ' + hh + ':' + min + ':' + ss;
+        if (document.documentElement.lang === 'ar') {
+            return '<span dir="ltr" class="western-nums">' + formatted + '</span>';
+        }
+        return formatted;
     } catch {
         return iso;
     }
@@ -121,6 +125,9 @@ function initSocketIO() {
         }
         if (data.type && data.type.startsWith('activity_') && window.location.pathname === '/activities' && typeof loadActivities === 'function') {
             loadActivities();
+        }
+        if (window.location.pathname === '/audit' && typeof loadAudit === 'function') {
+            loadAudit();
         }
     });
 

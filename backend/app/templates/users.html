@@ -125,8 +125,8 @@ async function loadUsers() {
             <td><strong>${u.full_name}</strong></td>
             <td>${u.username}</td>
             <td>${u.email}</td>
-            <td><span class="badge bg-${u.role === 'admin' ? 'danger' : u.role === 'employee' ? 'primary' : 'secondary'}">${u.role}</span></td>
-            <td><span class="badge bg-${u.is_active ? 'success' : 'danger'}">${u.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
+            <td><span class="badge rounded-pill bg-${u.role === 'admin' ? 'danger' : u.role === 'employee' ? 'primary' : 'secondary'}">${u.role}</span></td>
+            <td><span class="badge rounded-pill bg-${u.is_active ? 'success' : 'danger'}">${u.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
             <td class="table-actions">
                 <button class="btn btn-sm btn-outline-primary" onclick="editUser('${u._id}')" title="{{ _('edit') }}">
                     <i class="bi bi-pencil"></i>
