@@ -76,7 +76,7 @@ async function loadAudit() {
 
     tbody.innerHTML = data.logs.map(log => `
         <tr>
-            <td><span class="badge bg-${log.action === 'create' ? 'success' : log.action === 'update' ? 'warning' : 'danger'}">${log.action}</span></td>
+            <td><span class="badge bg-${log.action === 'create' ? 'success' : log.action === 'update' ? 'warning' : 'danger'}" style="border-radius:30px">${log.action}</span></td>
             <td>${log.entity_type}</td>
             <td>${log.description || '-'}</td>
             <td>${log.performed_by_name || '-'}</td>

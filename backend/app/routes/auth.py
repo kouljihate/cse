@@ -65,12 +65,14 @@ def login():
         additional_claims={"role": user["role"], "username": user["username"]},
     )
 
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr) or "unknown"
+
     AuditService.log(
         action="login",
         entity_type="auth",
         entity_id=str(user["_id"]),
         performed_by=str(user["_id"]),
-        description=f"User '{user.get('username')}' logged in",
+        description=f"User '{user.get('username')}' logged in from IP {ip}",
     )
 
     resp = jsonify({
