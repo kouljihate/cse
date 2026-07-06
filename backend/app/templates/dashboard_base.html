@@ -9,7 +9,7 @@
         <div class="offcanvas-header">
             <a class="navbar-brand fw-bold text-white" href="/dashboard">
                 {% if company and company.logo %}
-                <img src="{{ company.logo }}" alt="Logo" style="height:24px;width:24px;object-fit:contain;" class="me-2">
+                <img src="{{ company.logo }}" alt="Logo" style="height:24px;width:24px;object-fit:contain;" class="me-2" onerror="this.style.display='none'">
                 {% else %}
                 <i class="bi bi-building-gear me-2"></i>
                 {% endif %}
@@ -107,7 +107,7 @@
     <nav class="sidebar navbar-cse d-none d-lg-flex flex-column flex-shrink-0 p-3" id="sidebarDesktop">
         <a class="navbar-brand fw-bold mb-4" href="/dashboard">
             {% if company and company.logo %}
-            <img src="{{ company.logo }}" alt="Logo" style="height:24px;width:24px;object-fit:contain;" class="me-2">
+            <img src="{{ company.logo }}" alt="Logo" style="height:24px;width:24px;object-fit:contain;" class="me-2" onerror="this.style.display='none'">
             {% else %}
             <i class="bi bi-building-gear me-2"></i>
             {% endif %}
@@ -224,6 +224,18 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li><span class="dropdown-item-text text-muted">{{ user.role }}</span></li>
+                    {% if user.role == 'admin' %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" onclick="openCompanySettings();return false">
+                        <i class="bi bi-building-gear me-1"></i>{{ _('settings') }}
+                    </a></li>
+                    {% endif %}
+                    <li><hr class="dropdown-divider"></li>
+                    {% if user.role == 'admin' %}
+                    <li><a class="dropdown-item" href="#" onclick="openChangePassword();return false">
+                        <i class="bi bi-key me-1"></i>{{ _('change_password') }}
+                    </a></li>
+                    {% endif %}
                     <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="#" onclick="logout()">
                         <i class="bi bi-box-arrow-right me-1"></i>{{ _('sign_out') }}
@@ -236,8 +248,26 @@
             {% block content %}{% endblock %}
         </main>
         <footer class="footer bg-light py-3 border-top">
-            <div class="container-fluid text-center text-muted small">
-                &copy; 2026 {{ company.company_name if company else _('app_name') }}{% if company and company.tax_id %} | {{ _('tax_id') }}: {{ company.tax_id }}{% endif %}
+            <div class="container-fluid">
+                <div class="row align-items-center text-muted small">
+                    <div class="col text-start">
+                        &copy; 2026 {{ company.company_name if company else _('app_name') }}
+                    </div>
+                    <div class="col text-center">
+                        {% if company and company.social_links %}
+                        {% for platform, url in company.social_links.items() if url %}
+                        <a href="{{ url }}" target="_blank" class="text-muted me-2" rel="noopener">
+                            <i class="bi bi-{{ platform }}"></i>
+                        </a>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div class="col text-end">
+                        {% if company and company.tax_id %}
+                        {{ _('tax_id') }}: {{ company.tax_id }}
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </footer>
     </div>
@@ -263,44 +293,49 @@
 </div>
 
 <div class="modal fade" id="companySetupModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="bi bi-building-gear me-2"></i>{{ _('setup_company') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="companySetupForm" onsubmit="return handleCompanySetup(event)">
                 <div class="modal-body">
                     <h6 class="text-primary mb-3"><i class="bi bi-info-circle me-1"></i>{{ _('company_info') }}</h6>
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">{{ _('company_name') }} *</label>
                             <input type="text" name="company_name" class="form-control" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">{{ _('slogan') }}</label>
                             <input type="text" name="slogan" class="form-control">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">{{ _('logo_url') }}</label>
                             <input type="text" name="logo" class="form-control" placeholder="data:image/... or https://...">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">{{ _('tax_id') }}</label>
+                    </div>
+
+                    <h6 class="text-primary mb-3"><i class="bi bi-receipt me-1"></i>{{ _('tax_information') }}</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">{{ _('tax_id') }} (IF)</label>
                             <input type="text" name="tax_id" class="form-control" placeholder="Identifiant Fiscal">
                         </div>
                     </div>
 
                     <h6 class="text-primary mb-3"><i class="bi bi-geo-alt me-1"></i>{{ _('contact_info') }}</h6>
                     <div class="row g-3 mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">{{ _('address') }}</label>
                             <textarea name="address" class="form-control" rows="2"></textarea>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">{{ _('email') }}</label>
                             <input type="email" name="email" class="form-control">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">{{ _('phone') }}</label>
                             <input type="text" name="phone" class="form-control">
                         </div>
@@ -308,19 +343,19 @@
 
                     <h6 class="text-primary mb-3"><i class="bi bi-share me-1"></i>{{ _('social_media') }}</h6>
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label"><i class="bi bi-facebook me-1"></i>Facebook</label>
                             <input type="url" name="facebook" class="form-control" placeholder="https://facebook.com/...">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label"><i class="bi bi-twitter me-1"></i>Twitter</label>
                             <input type="url" name="twitter" class="form-control" placeholder="https://twitter.com/...">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label"><i class="bi bi-instagram me-1"></i>Instagram</label>
                             <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/...">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label class="form-label"><i class="bi bi-linkedin me-1"></i>LinkedIn</label>
                             <input type="url" name="linkedin" class="form-control" placeholder="https://linkedin.com/...">
                         </div>
@@ -328,8 +363,40 @@
 
                     <div id="companySetupError" class="alert alert-danger d-none mt-3"></div>
                 </div>
+                <div class="modal-footer p-4">
+                    <button type="submit" class="btn btn-cse btn-lg" id="companySetupBtn">{{ _('save_settings') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-key me-2"></i>{{ _('change_password') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="changePasswordForm" onsubmit="return handleChangePassword(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('current_password') }}</label>
+                        <input type="password" name="current_password" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('new_password') }}</label>
+                        <input type="password" name="new_password" class="form-control" required minlength="6">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('confirm_password') }}</label>
+                        <input type="password" name="confirm_password" class="form-control" required minlength="6">
+                    </div>
+                    <div id="changePasswordError" class="alert alert-danger d-none"></div>
+                </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-cse" id="companySetupBtn">{{ _('save_settings') }}</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('cancel') }}</button>
+                    <button type="submit" class="btn btn-cse" id="changePasswordBtn">{{ _('save') }}</button>
                 </div>
             </form>
         </div>
@@ -482,6 +549,36 @@ async function checkCompanySetup() {
     } catch (_) {}
 }
 
+async function openCompanySettings() {
+    const form = document.getElementById('companySetupForm');
+    const errorEl = document.getElementById('companySetupError');
+    errorEl.classList.add('d-none');
+    try {
+        const res = await fetch('/api/company/settings', {
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
+        });
+        if (res.status === 404) {
+            form.reset();
+        } else {
+            const data = await res.json();
+            form.company_name.value = data.company_name || '';
+            form.slogan.value = data.slogan || '';
+            form.logo.value = data.logo || '';
+            form.tax_id.value = data.tax_id || '';
+            form.address.value = data.address || '';
+            form.email.value = data.email || '';
+            form.phone.value = data.phone || '';
+            form.facebook.value = (data.social_links && data.social_links.facebook) || '';
+            form.twitter.value = (data.social_links && data.social_links.twitter) || '';
+            form.instagram.value = (data.social_links && data.social_links.instagram) || '';
+            form.linkedin.value = (data.social_links && data.social_links.linkedin) || '';
+        }
+    } catch (_) {
+        form.reset();
+    }
+    new bootstrap.Modal(document.getElementById('companySetupModal')).show();
+}
+
 async function handleCompanySetup(e) {
     e.preventDefault();
     const form = e.target;
@@ -528,6 +625,56 @@ async function handleCompanySetup(e) {
         errorEl.textContent = '{{ _('error_occurred') }}';
         errorEl.classList.remove('d-none');
     }
+}
+
+function openChangePassword() {
+    document.getElementById('changePasswordForm').reset();
+    document.getElementById('changePasswordError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('changePasswordModal')).show();
+}
+
+async function handleChangePassword(e) {
+    e.preventDefault();
+    const form = e.target;
+    const errorEl = document.getElementById('changePasswordError');
+    const btn = document.getElementById('changePasswordBtn');
+    errorEl.classList.add('d-none');
+
+    const current = form.current_password.value;
+    const newPass = form.new_password.value;
+    const confirm = form.confirm_password.value;
+
+    if (newPass !== confirm) {
+        errorEl.textContent = '{{ _('passwords_do_not_match') }}';
+        errorEl.classList.remove('d-none');
+        return false;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>{{ _('saving') }}';
+
+    try {
+        const data = await apiRequest('/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ current_password: current, new_password: newPass }),
+        });
+        btn.disabled = false;
+        btn.innerHTML = '{{ _('save') }}';
+
+        if (!data || data.error) {
+            errorEl.textContent = data ? data.error : 'Error';
+            errorEl.classList.remove('d-none');
+            return false;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
+        showToast('{{ _('password_changed') }}');
+    } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '{{ _('save') }}';
+        errorEl.textContent = '{{ _('error_occurred') }}';
+        errorEl.classList.remove('d-none');
+    }
+    return false;
 }
 {% endif %}
 </script>

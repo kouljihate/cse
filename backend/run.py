@@ -27,6 +27,7 @@ parser = argparse.ArgumentParser(description="CSE Backend Server")
 parser.add_argument("--db-host", help="MongoDB host IP (e.g. 192.168.1.100)")
 parser.add_argument("--port", type=int, default=5000, help="Server port (default: 5000)")
 parser.add_argument("--debug", action="store_true", help="Enable debug mode")
+parser.add_argument("--init-db", action="store_true", help="Initialize database from scratch (drops all collections, seeds admin user)")
 args, _ = parser.parse_known_args()
 
 db_host = args.db_host or settings.mongo_host
@@ -37,6 +38,35 @@ if not db_host and not any("pytest" in a for a in sys.argv):
 
 if db_host:
     settings.mongo_uri = f"mongodb://{db_host}:27017/cse"
+
+if args.init_db:
+    from app.database import get_db
+    from datetime import datetime, timezone
+    from bcrypt import hashpw, gensalt
+
+    db = get_db()
+    print("Dropping all collections...")
+    for name in db.list_collection_names():
+        db.drop_collection(name)
+        print(f"  Dropped: {name}")
+
+    password = hashpw("admin123".encode("utf-8"), gensalt()).decode("utf-8")
+    admin = {
+        "username": "admin",
+        "email": "admin@cse.com",
+        "password": password,
+        "role": "admin",
+        "full_name": "System Administrator",
+        "phone": "+1-555-0100",
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
+    }
+    db.users.insert_one(admin)
+    print("Admin user created (username: admin, password: admin123)")
+
+    print("Database initialized successfully!")
+    sys.exit(0)
 
 app = create_app()
 

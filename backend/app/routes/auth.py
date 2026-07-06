@@ -116,3 +116,42 @@ def profile():
     if not user:
         return jsonify({"error": "User not found"}), 404
     return jsonify(UserResponse(**user).model_dump(by_alias=True)), 200
+
+
+@auth_bp.route("/change-password", methods=["POST"])
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    current_password = data.get("current_password", "")
+    new_password = data.get("new_password", "")
+
+    if not current_password or not new_password:
+        return jsonify({"error": "Current and new password are required"}), 400
+
+    if len(new_password) < 6:
+        return jsonify({"error": "New password must be at least 6 characters"}), 400
+
+    db = get_db()
+    user = db.users.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if not checkpw(current_password.encode("utf-8"), user["password"].encode("utf-8")):
+        return jsonify({"error": "Current password is incorrect"}), 401
+
+    hashed = hashpw(new_password.encode("utf-8"), gensalt()).decode("utf-8")
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password": hashed, "updated_at": datetime.now(timezone.utc)}}
+    )
+
+    AuditService.log(
+        action="update",
+        entity_type="user",
+        entity_id=user_id,
+        performed_by=user_id,
+        description="Password changed",
+    )
+
+    return jsonify({"ok": True, "message": "Password changed successfully"}), 200
