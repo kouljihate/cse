@@ -1,3 +1,5 @@
+import os
+import sys
 from datetime import datetime, timezone
 from flask import Flask, render_template, request, redirect, make_response
 from flask_jwt_extended import JWTManager, decode_token
@@ -8,8 +10,19 @@ from app.socketio_server import socketio
 jwt = JWTManager()
 
 
+def _app_root():
+    if getattr(sys, "frozen", False):
+        return os.path.join(sys._MEIPASS, "app")
+    return os.path.dirname(os.path.abspath(__file__))
+
+
 def create_app():
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        template_folder=os.path.join(_app_root(), "templates"),
+        static_folder=os.path.join(_app_root(), "static"),
+        static_url_path="/static",
+    )
     app.secret_key = settings.jwt_secret_key
 
     app.config["JWT_SECRET_KEY"] = settings.jwt_secret_key
@@ -28,6 +41,9 @@ def create_app():
     from app.routes.audit import audit_bp
     from app.routes.customers import customers_bp
     from app.routes.activities import activities_bp
+    from app.routes.requests import requests_bp
+    from app.routes.documents import documents_bp
+    from app.routes.company import company_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
@@ -39,6 +55,9 @@ def create_app():
     app.register_blueprint(audit_bp)
     app.register_blueprint(customers_bp)
     app.register_blueprint(activities_bp)
+    app.register_blueprint(requests_bp)
+    app.register_blueprint(documents_bp)
+    app.register_blueprint(company_bp)
 
     @app.context_processor
     def inject_globals():
@@ -63,6 +82,15 @@ def create_app():
 
         user_id = str(user["_id"]) if user else None
 
+        company = None
+        if token:
+            try:
+                from app.database import get_db
+                db = get_db()
+                company = db.company_settings.find_one()
+            except Exception:
+                pass
+
         return dict(
             _=_,
             lang=lang,
@@ -70,6 +98,7 @@ def create_app():
             user_id=user_id,
             now=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
             version=VERSION,
+            company=company,
         )
 
     # ── Web Routes ──────────────────────────────────────────
@@ -81,14 +110,28 @@ def create_app():
     @app.route("/login")
     def login_page():
         lang = request.args.get("lang", "en")
-        resp = make_response(render_template("login.html", lang=lang))
+        company = None
+        try:
+            from app.database import get_db
+            db = get_db()
+            company = db.company_settings.find_one()
+        except Exception:
+            pass
+        resp = make_response(render_template("login.html", lang=lang, company=company))
         resp.set_cookie("lang", lang, max_age=365*24*3600)
         return resp
 
     @app.route("/register")
     def register_page():
         lang = request.args.get("lang", "en")
-        resp = make_response(render_template("register.html", lang=lang))
+        company = None
+        try:
+            from app.database import get_db
+            db = get_db()
+            company = db.company_settings.find_one()
+        except Exception:
+            pass
+        resp = make_response(render_template("register.html", lang=lang, company=company))
         resp.set_cookie("lang", lang, max_age=365*24*3600)
         return resp
 
@@ -157,7 +200,15 @@ def create_app():
     def customer_detail_page(customer_id):
         return render_template("customer_detail.html", active_page="customers", customer_id=customer_id)
 
-    socketio.init_app(app, cors_allowed_origins="*")
+    @app.route("/requests")
+    def requests_page():
+        return render_template("requests.html", active_page="requests")
+
+    @app.route("/documents")
+    def documents_page():
+        return render_template("documents.html", active_page="documents")
+
+    socketio.init_app(app, cors_allowed_origins="*", async_mode="threading")
 
     @app.route("/api/health")
     def health():

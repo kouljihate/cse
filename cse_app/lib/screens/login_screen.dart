@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Icon(Icons.build_circle, size: 80, color: Theme.of(context).primaryColor),
                   const SizedBox(height: 16),
                   Text(
-                    'Cabinet Services Express',
+                    'Global Service & Document Manager',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

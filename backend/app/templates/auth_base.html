@@ -5,10 +5,14 @@
     <div class="login-card card shadow-lg">
         <div class="card-body text-center">
             <div class="login-logo mb-3">
+                {% if company and company.logo %}
+                <img src="{{ company.logo }}" alt="Logo" style="height:64px;width:64px;object-fit:contain;">
+                {% else %}
                 <i class="bi bi-building-gear"></i>
+                {% endif %}
             </div>
-            <h3 class="fw-bold mb-1" style="white-space:nowrap;font-size:clamp(1rem,4vw,1.5rem)">{{ _('app_name') }}</h3>
-            <p class="text-muted mb-4">{{ _('app_tagline') }}</p>
+            <h3 class="fw-bold mb-1" style="white-space:nowrap;font-size:clamp(1rem,4vw,1.5rem)">{{ company.company_name if company else _('app_name') }}</h3>
+            <p class="text-muted mb-4">{{ company.slogan if (company and company.slogan) else _('app_tagline') }}</p>
 
             {% block auth_content %}{% endblock %}
 
@@ -30,7 +34,136 @@
     </div>
 </div>
 
+<div class="modal fade" id="companySetupModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-building-gear me-2"></i>{{ _('setup_company') }}</h5>
+            </div>
+            <form id="companySetupForm" onsubmit="return handleCompanySetup(event)">
+                <div class="modal-body">
+                    <h6 class="text-primary mb-3"><i class="bi bi-info-circle me-1"></i>{{ _('company_info') }}</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('company_name') }} *</label>
+                            <input type="text" name="company_name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('slogan') }}</label>
+                            <input type="text" name="slogan" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('logo_url') }}</label>
+                            <input type="text" name="logo" class="form-control" placeholder="data:image/... or https://...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('tax_id') }}</label>
+                            <input type="text" name="tax_id" class="form-control" placeholder="Identifiant Fiscal">
+                        </div>
+                    </div>
+
+                    <h6 class="text-primary mb-3"><i class="bi bi-geo-alt me-1"></i>{{ _('contact_info') }}</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('address') }}</label>
+                            <textarea name="address" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('email') }}</label>
+                            <input type="email" name="email" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">{{ _('phone') }}</label>
+                            <input type="text" name="phone" class="form-control">
+                        </div>
+                    </div>
+
+                    <h6 class="text-primary mb-3"><i class="bi bi-share me-1"></i>{{ _('social_media') }}</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-facebook me-1"></i>Facebook</label>
+                            <input type="url" name="facebook" class="form-control" placeholder="https://facebook.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-twitter me-1"></i>Twitter</label>
+                            <input type="url" name="twitter" class="form-control" placeholder="https://twitter.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-instagram me-1"></i>Instagram</label>
+                            <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label"><i class="bi bi-linkedin me-1"></i>LinkedIn</label>
+                            <input type="url" name="linkedin" class="form-control" placeholder="https://linkedin.com/...">
+                        </div>
+                    </div>
+
+                    <div id="companySetupError" class="alert alert-danger d-none mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-cse" id="companySetupBtn">{{ _('save_settings') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+{% if not company %}
+document.addEventListener('DOMContentLoaded', function() {
+    new bootstrap.Modal(document.getElementById('companySetupModal')).show();
+});
+{% endif %}
+
+async function handleCompanySetup(e) {
+    e.preventDefault();
+    const form = e.target;
+    const errorEl = document.getElementById('companySetupError');
+    const btn = document.getElementById('companySetupBtn');
+    errorEl.classList.add('d-none');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>{{ _('saving') }}';
+
+    const payload = {
+        company_name: form.company_name.value,
+        slogan: form.slogan.value,
+        logo: form.logo.value || null,
+        address: form.address.value,
+        email: form.email.value,
+        phone: form.phone.value,
+        social_links: {},
+        tax_id: form.tax_id.value,
+    };
+    if (form.facebook.value) payload.social_links.facebook = form.facebook.value;
+    if (form.twitter.value) payload.social_links.twitter = form.twitter.value;
+    if (form.instagram.value) payload.social_links.instagram = form.instagram.value;
+    if (form.linkedin.value) payload.social_links.linkedin = form.linkedin.value;
+
+    try {
+        const r = await fetch('/api/company/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await r.json();
+        btn.disabled = false;
+        btn.innerHTML = '{{ _('save_settings') }}';
+
+        if (!data || data.error) {
+            errorEl.textContent = data ? data.error : 'Error';
+            errorEl.classList.remove('d-none');
+            return;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('companySetupModal')).hide();
+        location.reload();
+    } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '{{ _('save_settings') }}';
+        errorEl.textContent = '{{ _('error_occurred') }}';
+        errorEl.classList.remove('d-none');
+    }
+}
+
 (function() {
     var dbIcon = document.getElementById('db-status');
     if (!dbIcon) return;

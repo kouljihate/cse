@@ -29,7 +29,7 @@ class CseApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()..loadProfile()),
       ],
       child: MaterialApp(
-        title: 'CSE',
+        title: 'Global Service & Document Manager',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           colorSchemeSeed: const Color(0xFF1a237e),

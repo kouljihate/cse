@@ -2,8 +2,9 @@ const API_BASE = '/api';
 
 async function apiRequest(url, options = {}) {
     const token = localStorage.getItem('access_token');
+    const isFormData = options.body instanceof FormData;
     const headers = {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.headers,
     };

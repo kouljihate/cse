@@ -1,6 +1,6 @@
 {% extends "dashboard_base.html" %}
 
-{% block title %}{{ _('users') }} - {{ _('app_name') }}{% endblock %}
+{% block title %}{{ _('users') }} - {{ company.company_name if company else _('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -100,6 +100,42 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="viewUserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ _('view') }} - <span id="viewUserName">-</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="viewUserDetails" class="row mb-3"></div>
+                <div id="viewUserActivities" class="d-none">
+                    <hr>
+                    <h6>{{ _('activity_management') }}</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>{{ _('activity_title') }}</th>
+                                    <th>{{ _('status') }}</th>
+                                    <th>{{ _('assigned_by') }}</th>
+                                    <th>{{ _('created_at') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="viewActivitiesBody">
+                                <tr><td colspan="4" class="text-center text-muted">{{ _('loading') }}</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('close') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -128,6 +164,9 @@ async function loadUsers() {
             <td><span class="badge rounded-pill bg-${u.role === 'admin' ? 'danger' : u.role === 'employee' ? 'primary' : 'secondary'}">${u.role}</span></td>
             <td><span class="badge rounded-pill bg-${u.is_active ? 'success' : 'danger'}">${u.is_active ? '{{ _('active') }}' : '{{ _('inactive') }}'}</span></td>
             <td class="table-actions">
+                <button class="btn btn-sm btn-outline-info" onclick="viewUser('${u._id}')" title="{{ _('view') }}">
+                    <i class="bi bi-eye"></i>
+                </button>
                 <button class="btn btn-sm btn-outline-primary" onclick="editUser('${u._id}')" title="{{ _('edit') }}">
                     <i class="bi bi-pencil"></i>
                 </button>
@@ -137,6 +176,57 @@ async function loadUsers() {
             </td>
         </tr>
     `).join('');
+}
+
+async function viewUser(id) {
+    const u = await apiRequest('/users/' + id);
+    if (!u) return;
+    document.getElementById('viewUserName').textContent = u.full_name || u.username;
+
+    const statusHtml = u.is_active
+        ? '<span class="badge bg-success">{{ _('active') }}</span>'
+        : '<span class="badge bg-danger">{{ _('inactive') }}</span>';
+    const roleBadge = `<span class="badge rounded-pill bg-${u.role === 'admin' ? 'danger' : u.role === 'employee' ? 'primary' : 'secondary'}">${u.role}</span>`;
+
+    document.getElementById('viewUserDetails').innerHTML = `
+        <div class="col-md-6">
+            <div class="card mb-2">
+                <div class="card-body">
+                    <p class="mb-1"><strong>{{ _('full_name') }}:</strong> ${u.full_name || '-'}</p>
+                    <p class="mb-1"><strong>{{ _('username') }}:</strong> ${u.username || '-'}</p>
+                    <p class="mb-1"><strong>{{ _('email') }}:</strong> ${u.email || '-'}</p>
+                    <p class="mb-1"><strong>{{ _('phone') }}:</strong> ${u.phone || '-'}</p>
+                    <p class="mb-1"><strong>{{ _('role') }}:</strong> ${roleBadge}</p>
+                    <p class="mb-1"><strong>{{ _('status') }}:</strong> ${statusHtml}</p>
+                    <p class="mb-0"><strong>{{ _('created_at') }}:</strong> ${formatDate(u.created_at)}</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const activitiesSection = document.getElementById('viewUserActivities');
+    if (u.role === 'employee') {
+        activitiesSection.classList.remove('d-none');
+        const tbody = document.getElementById('viewActivitiesBody');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">{{ _('loading') }}</td></tr>';
+        const activities = await apiRequest('/activities/?assigned_to=' + id);
+        if (!activities || activities.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">{{ _('no_activities') }}</td></tr>';
+        } else {
+            tbody.innerHTML = activities.map(a => `
+                <tr>
+                    <td><strong>${a.title}</strong></td>
+                    <td><span class="badge bg-${a.status === 'completed' ? 'success' : a.status === 'in_progress' ? 'info' : a.status === 'cancelled' ? 'danger' : 'warning'}">${a.status.replace('_', ' ')}</span></td>
+                    <td>${a.assigned_by_name || '-'}</td>
+                    <td>${formatDate(a.created_at)}</td>
+                </tr>
+            `).join('');
+        }
+    } else {
+        activitiesSection.classList.add('d-none');
+    }
+
+    new bootstrap.Modal(document.getElementById('viewUserModal')).show();
 }
 
 async function deleteUser(id) {

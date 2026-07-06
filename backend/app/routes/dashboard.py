@@ -68,16 +68,49 @@ def stats():
             {
                 "$lookup": {
                     "from": "users",
-                    "localField": "performed_by",
+                    "localField": "assigned_by",
                     "foreignField": "_id",
-                    "as": "performer",
+                    "as": "creator",
                 }
             },
-            {"$unwind": {"path": "$performer", "preserveNullAndEmptyArrays": True}},
-            {"$addFields": {"performed_by_name": "$performer.full_name"}},
-            {"$project": {"performer": 0}},
+            {"$unwind": {"path": "$creator", "preserveNullAndEmptyArrays": True}},
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "assigned_to",
+                    "foreignField": "_id",
+                    "as": "assignee",
+                }
+            },
+            {"$unwind": {"path": "$assignee", "preserveNullAndEmptyArrays": True}},
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "customer_id",
+                    "foreignField": "_id",
+                    "as": "customer",
+                }
+            },
+            {"$unwind": {"path": "$customer", "preserveNullAndEmptyArrays": True}},
+            {
+                "$addFields": {
+                    "performed_by_name": "$creator.full_name",
+                    "assigned_to_name": "$assignee.full_name",
+                    "customer_name": "$customer.full_name",
+                    "action": "create",
+                    "entity_type": "activity",
+                    "description": {
+                        "$cond": {
+                            "if": {"$ifNull": ["$assigned_to_name", False]},
+                            "then": {"$concat": ["'", "$title", "' assigned to ", "$assigned_to_name"]},
+                            "else": "$title",
+                        }
+                    },
+                }
+            },
+            {"$project": {"creator": 0, "assignee": 0, "customer": 0}},
         ]
-        recent_activities = list(db.audit_logs.aggregate(recent_pipeline))
+        recent_activities = list(db.activities.aggregate(recent_pipeline))
 
         return jsonify({
             "total_tasks": total_tasks,

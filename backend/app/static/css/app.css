@@ -65,12 +65,120 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6,
 }
 
 .card-dashboard {
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
     cursor: default;
+    border: none !important;
+    border-radius: 1rem;
 }
 
 .card-dashboard:hover {
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.stat-card {
+    border-radius: 1rem;
+    border: none;
+    overflow: hidden;
+    position: relative;
+}
+
+.stat-card .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.stat-card .stat-label {
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+.dash-chart-card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+
+.dash-chart-card .card-header {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    padding: 1rem 1.25rem;
+}
+
+.activity-timeline-modern {
+    position: relative;
+    padding-left: 2.5rem;
+}
+
+.activity-timeline-modern::before {
+    content: '';
+    position: absolute;
+    left: 0.85rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 2px;
+    background: linear-gradient(180deg, #e0e0e0 0%, #e0e0e0 100%);
+}
+
+[dir="rtl"] .activity-timeline-modern {
+    padding-left: 0;
+    padding-right: 2.5rem;
+}
+
+[dir="rtl"] .activity-timeline-modern::before {
+    left: auto;
+    right: 0.85rem;
+}
+
+.activity-item-modern {
+    position: relative;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1rem;
+    background: #f8f9fa;
+    border-radius: 0.75rem;
+    transition: background 0.15s;
+}
+
+.activity-item-modern:hover {
+    background: #f0f2f5;
+}
+
+.activity-item-modern::before {
+    content: '';
+    position: absolute;
+    left: -1.8rem;
+    top: 1rem;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 3px solid #1a237e;
+    background: #fff;
+}
+
+[dir="rtl"] .activity-item-modern::before {
+    left: auto;
+    right: -1.8rem;
+}
+
+.activity-item-modern .act-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
 .table-actions .btn {

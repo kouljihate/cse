@@ -1,6 +1,6 @@
 {% extends "dashboard_base.html" %}
 
-{% block title %}{{ _('messaging') }} - {{ _('app_name') }}{% endblock %}
+{% block title %}{{ _('messaging') }} - {{ company.company_name if company else _('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">

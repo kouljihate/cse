@@ -1,24 +1,12 @@
+"""
+Development entry point. Just runs backend/run.py.
+"""
 import sys
-import argparse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "backend"))
 
-from config import settings
-from app import create_app
-from app.socketio_server import socketio
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--db-host", help="MongoDB host IP (e.g. 192.168.1.100)")
-args, _ = parser.parse_known_args()
-
-db_host = args.db_host or settings.mongo_host
-if not db_host:
-    parser.error("--db-host is required (set it in .env or pass as argument)")
-
-settings.mongo_uri = f"mongodb://{db_host}:27017/cse"
-
-app = create_app()
+import run  # noqa: E402  (parses --db-host, creates app)
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
+    run.socketio.run(run.app, debug=True, host="0.0.0.0", port=run.args.port, allow_unsafe_werkzeug=True)

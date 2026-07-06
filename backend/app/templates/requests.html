@@ -1,0 +1,115 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('request_management') }} - {{ company.company_name if company else _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-chat-square-text me-2"></i>{{ _('request_management') }}</h4>
+</div>
+<hr>
+
+<div class="row g-4">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">{{ _('new_request') }}</h6>
+            </div>
+            <div class="card-body">
+                <form id="requestForm" onsubmit="return handleSubmit(event)">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('request_title') }} *</label>
+                        <input type="text" id="requestTitle" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('request_content') }} *</label>
+                        <textarea id="requestContent" class="form-control" rows="8" required></textarea>
+                        <div class="form-text">{{ _('request_content_hint') }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('screenshots') }}</label>
+                        <input type="file" id="requestScreenshots" class="form-control" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
+                        <div class="form-text">{{ _('screenshots_hint') }}</div>
+                        <div id="screenshotPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+                    <div id="requestError" class="alert alert-danger d-none"></div>
+                    <div id="requestSuccess" class="alert alert-success d-none"></div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-cse" id="submitBtn">
+                            <i class="bi bi-send me-1"></i>{{ _('submit_request') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.getElementById('requestScreenshots').addEventListener('change', function() {
+    const container = document.getElementById('screenshotPreview');
+    container.innerHTML = '';
+    for (const file of this.files) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'position-relative';
+            wrapper.style.width = '100px';
+            wrapper.innerHTML = `<img src="${e.target.result}" class="rounded border" style="width:100px;height:75px;object-fit:cover">`;
+            container.appendChild(wrapper);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+async function handleSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    const errorEl = document.getElementById('requestError');
+    const successEl = document.getElementById('requestSuccess');
+    errorEl.classList.add('d-none');
+    successEl.classList.add('d-none');
+
+    const title = document.getElementById('requestTitle').value.trim();
+    const content = document.getElementById('requestContent').value.trim();
+    const fileInput = document.getElementById('requestScreenshots');
+
+    if (!title || !content) {
+        errorEl.textContent = '{{ _('fill_required') }}';
+        errorEl.classList.remove('d-none');
+        return false;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>{{ _('submitting') }}';
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    for (const file of fileInput.files) {
+        formData.append('screenshots', file);
+    }
+
+    const data = await apiRequest('/requests/', {
+        method: 'POST',
+        body: formData,
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-send me-1"></i>{{ _('submit_request') }}';
+
+    if (data.ok) {
+        document.getElementById('requestForm').reset();
+        document.getElementById('screenshotPreview').innerHTML = '';
+        successEl.innerHTML = `<strong>{{ _('request_created') }}</strong><br>{{ _('request_pushed') }}<br><code>${data.foldername}</code>`;
+        successEl.classList.remove('d-none');
+        showToast('{{ _('request_success') }}');
+    } else {
+        errorEl.textContent = data.error || data.warning || '{{ _('request_error') }}';
+        errorEl.classList.remove('d-none');
+    }
+    return false;
+}
+</script>
+{% endblock %}

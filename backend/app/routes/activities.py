@@ -123,7 +123,10 @@ def list_activities():
     role = claims.get("role")
 
     query = {}
-    if role == "employee":
+    assigned_to_filter = request.args.get("assigned_to")
+    if assigned_to_filter:
+        query["assigned_to"] = ObjectId(assigned_to_filter)
+    elif role == "employee":
         query["assigned_to"] = ObjectId(identity)
 
     pipeline = [

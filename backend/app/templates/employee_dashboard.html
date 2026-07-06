@@ -1,6 +1,6 @@
 {% extends "dashboard_base.html" %}
 
-{% block title %}{{ _('dashboard') }} - {{ _('app_name') }}{% endblock %}
+{% block title %}{{ _('dashboard') }} - {{ company.company_name if company else _('app_name') }}{% endblock %}
 
 {% block content %}
 <div class="row mb-4">

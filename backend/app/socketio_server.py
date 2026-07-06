@@ -4,7 +4,7 @@ from flask_jwt_extended import decode_token
 from bson import ObjectId
 from app.database import get_db
 
-socketio = SocketIO(cors_allowed_origins="*")
+socketio = SocketIO(cors_allowed_origins="*", async_mode="threading")
 connected = {}
 
 

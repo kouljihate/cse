@@ -1,6 +1,6 @@
 {% extends "auth_base.html" %}
 
-{% block title %}{{ _('sign_in') }} - {{ _('app_name') }}{% endblock %}
+{% block title %}{{ _('sign_in') }} - {{ company.company_name if company else _('app_name') }}{% endblock %}
 
 {% block auth_content %}
 <form id="loginForm" onsubmit="return handleLogin(event)">

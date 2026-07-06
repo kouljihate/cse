@@ -1,0 +1,192 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}{{ _('documents') }} - {{ company.company_name if company else _('app_name') }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bi bi-file-earmark-pdf me-2"></i>{{ _('document_management') }}</h4>
+    <button class="btn btn-cse" onclick="openUploadModal()">
+        <i class="bi bi-cloud-upload me-1"></i>{{ _('upload_document') }}
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex gap-2 mb-3">
+            <select id="filterCustomer" class="form-select form-select-sm" style="width:auto;" onchange="loadDocuments()">
+                <option value="">{{ _('filter') }} {{ _('customer') }}</option>
+            </select>
+            <select id="filterService" class="form-select form-select-sm" style="width:auto;" onchange="loadDocuments()">
+                <option value="">{{ _('filter') }} {{ _('service') }}</option>
+            </select>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>{{ _('file_name') }}</th>
+                        <th>{{ _('customer') }}</th>
+                        <th>{{ _('service') }}</th>
+                        <th>{{ _('description') }}</th>
+                        <th>{{ _('file_size') }}</th>
+                        <th>{{ _('created_at') }}</th>
+                        <th>{{ _('actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="documentsTableBody">
+                    <tr><td colspan="7" class="text-center text-muted">{{ _('loading') }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="uploadDocumentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ _('upload_document') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="documentForm" onsubmit="return handleDocumentUpload(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('customer') }} *</label>
+                        <select name="customer_id" class="form-select" required>
+                            <option value="">{{ _('select_customer') }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('service') }} *</label>
+                        <select name="service_id" class="form-select" required>
+                            <option value="">{{ _('select_service') }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('file') }} (PDF) *</label>
+                        <input type="file" name="file" class="form-control" accept=".pdf,application/pdf" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('description') }}</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div id="documentError" class="alert alert-danger d-none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('cancel') }}</button>
+                    <button type="submit" class="btn btn-cse">{{ _('upload') }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let customers = [];
+let services = [];
+loadCustomers();
+loadServices();
+loadDocuments();
+
+async function loadCustomers() {
+    customers = await apiRequest('/customers/') || [];
+    const sel = document.querySelector('#uploadDocumentModal select[name=customer_id]');
+    const filter = document.getElementById('filterCustomer');
+    const opts = d => `<option value="${d._id}">${d.full_name}</option>`;
+    sel.innerHTML = '<option value="">{{ _('select_customer') }}</option>' + customers.map(opts).join('');
+    filter.innerHTML = '<option value="">{{ _('filter') }} {{ _('customer') }}</option>' + customers.map(opts).join('');
+}
+
+async function loadServices() {
+    services = await apiRequest('/services/') || [];
+    const sel = document.querySelector('#uploadDocumentModal select[name=service_id]');
+    const filter = document.getElementById('filterService');
+    const opts = d => `<option value="${d._id}">${d.name}</option>`;
+    sel.innerHTML = '<option value="">{{ _('select_service') }}</option>' + services.map(opts).join('');
+    filter.innerHTML = '<option value="">{{ _('filter') }} {{ _('service') }}</option>' + services.map(opts).join('');
+}
+
+async function loadDocuments() {
+    const customer_id = document.getElementById('filterCustomer').value;
+    const service_id = document.getElementById('filterService').value;
+    const params = new URLSearchParams();
+    if (customer_id) params.set('customer_id', customer_id);
+    if (service_id) params.set('service_id', service_id);
+    const data = await apiRequest('/documents/?' + params.toString());
+    const tbody = document.getElementById('documentsTableBody');
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">{{ _('no_documents') }}</td></tr>';
+        return;
+    }
+    tbody.innerHTML = data.map(d => `
+        <tr>
+            <td><strong>${d.original_name}</strong></td>
+            <td>${d.customer_name || '-'}</td>
+            <td>${d.service_name || '-'}</td>
+            <td>${d.description || '-'}</td>
+            <td>${formatFileSize(d.file_size)}</td>
+            <td>${formatDate(d.created_at)}</td>
+            <td class="table-actions">
+                <button class="btn btn-sm btn-outline-info" onclick="viewDocument('${d._id}')" title="{{ _('view') }}">
+                    <i class="bi bi-eye"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteDocument('${d._id}')" title="{{ _('delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function formatFileSize(bytes) {
+    if (!bytes) return '-';
+    const units = ['B', 'KB', 'MB'];
+    let i = 0;
+    let size = bytes;
+    while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+    return size.toFixed(1) + ' ' + units[i];
+}
+
+function openUploadModal() {
+    document.getElementById('documentForm').reset();
+    document.getElementById('documentError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('uploadDocumentModal')).show();
+}
+
+function viewDocument(id) {
+    window.open('/api/documents/' + id + '/file', '_blank');
+}
+
+async function deleteDocument(id) {
+    const d = await apiRequest('/documents/' + id);
+    showDeleteModal('Document', d ? d.original_name : '', () => {
+        apiRequest('/documents/' + id, { method: 'DELETE' }).then(data => {
+            if (data.message) {
+                showToast('{{ _('delete') }}');
+                loadDocuments();
+            }
+        });
+    });
+}
+
+async function handleDocumentUpload(e) {
+    e.preventDefault();
+    const form = e.target;
+    const errorEl = document.getElementById('documentError');
+    errorEl.classList.add('d-none');
+
+    const fd = new FormData(form);
+    const data = await apiRequest('/documents/', { method: 'POST', body: fd });
+    if (!data || data.error) {
+        errorEl.textContent = data ? data.error : '{{ _('upload_error') }}';
+        errorEl.classList.remove('d-none');
+        return;
+    }
+    bootstrap.Modal.getInstance(document.getElementById('uploadDocumentModal')).hide();
+    showToast('{{ _('upload_success') }}');
+    loadDocuments();
+}
+</script>
+{% endblock %}

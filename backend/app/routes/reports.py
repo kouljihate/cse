@@ -82,7 +82,7 @@ def tasks_report():
     styles = getSampleStyleSheet()
     elements = []
 
-    elements.append(Paragraph("Cabinet Services Express", styles["Title"]))
+    elements.append(Paragraph("Global Service & Document Manager", styles["Title"]))
     elements.append(Paragraph("Tasks Report", styles["Heading2"]))
     elements.append(Paragraph(f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}", styles["Normal"]))
     elements.append(Spacer(1, 10 * mm))
@@ -137,7 +137,7 @@ def services_report():
     styles = getSampleStyleSheet()
     elements = []
 
-    elements.append(Paragraph("Cabinet Services Express", styles["Title"]))
+    elements.append(Paragraph("Global Service & Document Manager", styles["Title"]))
     elements.append(Paragraph("Services Report", styles["Heading2"]))
     elements.append(Paragraph(f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}", styles["Normal"]))
     elements.append(Spacer(1, 10 * mm))
@@ -200,7 +200,7 @@ def users_report():
     styles = getSampleStyleSheet()
     elements = []
 
-    elements.append(Paragraph("Cabinet Services Express", styles["Title"]))
+    elements.append(Paragraph("Global Service & Document Manager", styles["Title"]))
     elements.append(Paragraph("Users Report", styles["Heading2"]))
     elements.append(Paragraph(f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}", styles["Normal"]))
     elements.append(Spacer(1, 10 * mm))
