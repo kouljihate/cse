@@ -215,8 +215,8 @@ def create_app():
         from app.database import get_db
         try:
             get_db().command("ping")
-            return {"status": "ok", "db": "connected"}
+            return {"status": "ok", "db": "connected", "version": VERSION}
         except Exception:
-            return {"status": "error", "db": "disconnected"}, 503
+            return {"status": "error", "db": "disconnected", "version": VERSION}, 503
 
     return app

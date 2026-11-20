@@ -1,5 +1,5 @@
 """
-Entry point for CSE Backend Server.
+Entry point for the Document Manager backend server.
 Works with both `python run.py` and PyInstaller-packaged builds.
 """
 import os
@@ -15,29 +15,32 @@ if backend_dir not in sys.path:
 if getattr(sys, "frozen", False):
     env_path = Path(sys.executable).parent / ".env"
     if env_path.exists():
-        os.environ.setdefault("CSE_ENV_FILE", str(env_path))
+        os.environ.setdefault("DOCMAN_ENV_FILE", str(env_path))
         from dotenv import load_dotenv
         load_dotenv(env_path)
 
 from config import settings
-from app import create_app
-from app.socketio_server import socketio
 
-parser = argparse.ArgumentParser(description="CSE Backend Server")
+parser = argparse.ArgumentParser(description="Document Manager backend server")
 parser.add_argument("--db-host", help="MongoDB host IP (e.g. 192.168.1.100)")
+parser.add_argument("--host", default="127.0.0.1", help="Interface to bind (default: 127.0.0.1, use 0.0.0.0 in containers)")
 parser.add_argument("--port", type=int, default=5000, help="Server port (default: 5000)")
 parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 parser.add_argument("--init-db", action="store_true", help="Initialize database from scratch (drops all collections, seeds admin user)")
 args, _ = parser.parse_known_args()
 
 db_host = args.db_host or settings.mongo_host
-if not db_host and not any("pytest" in a for a in sys.argv):
-    print("ERROR: --db-host is required (set MONGO_HOST in .env or pass as argument)")
+if db_host:
+    # Apply the override before the app is imported: app.database builds its
+    # MongoClient from settings at import time.
+    settings.mongo_uri = f"mongodb://{db_host}:27017/cse"
+elif not os.environ.get("MONGO_URI") and not any("pytest" in a for a in sys.argv):
+    print("ERROR: --db-host is required (set MONGO_HOST or MONGO_URI in .env, or pass --db-host)")
     print("Usage: python run.py --db-host 192.168.1.100")
     sys.exit(1)
 
-if db_host:
-    settings.mongo_uri = f"mongodb://{db_host}:27017/cse"
+from app import create_app
+from app.socketio_server import socketio
 
 if args.init_db:
     from app.database import get_db
@@ -53,7 +56,7 @@ if args.init_db:
     password = hashpw("admin123".encode("utf-8"), gensalt()).decode("utf-8")
     admin = {
         "username": "admin",
-        "email": "admin@cse.com",
+        "email": "admin@docmanager.local",
         "password": password,
         "role": "admin",
         "full_name": "System Administrator",
@@ -71,4 +74,4 @@ if args.init_db:
 app = create_app()
 
 if __name__ == "__main__":
-    socketio.run(app, debug=args.debug or True, host="0.0.0.0", port=args.port, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=args.debug, host=args.host, port=args.port, allow_unsafe_werkzeug=True)

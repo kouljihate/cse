@@ -1,8 +1,8 @@
-CSE Backend Server — Standalone Package
-========================================
+Document Manager — Standalone Package
+=====================================
 
-This folder contains the CSE backend compiled into a standalone
-executable. No Python or dependencies are required.
+This folder contains the Document Manager backend compiled into a
+standalone executable. No Python or dependencies are required.
 
 
 PREREQUISITES (on the target machine)
@@ -13,7 +13,7 @@ PREREQUISITES (on the target machine)
 
 SETUP
 ------
-1. Copy the entire "cse" folder to the target machine.
+1. Copy the entire "docmanager" folder to the target machine.
 
 2. Rename ".env.example" to ".env" and edit the MongoDB host:
 
@@ -21,19 +21,20 @@ SETUP
        JWT_SECRET_KEY=change-this-to-a-random-secret
        JWT_ACCESS_TOKEN_EXPIRES=86400
 
-3. (Optional) Create a "requests" folder next to cse.exe if
+3. (Optional) Create a "requests" folder next to docmanager.exe if
    you plan to use the Request Management feature. This folder
-   must be a Git repository for auto-push to work.
+   should be a Git repository for auto-push to work.
 
 
 RUN
 ----
-Open a terminal in the cse folder and run:
+Open a terminal in the docmanager folder and run:
 
-    cse.exe --db-host 192.168.1.100
+    docmanager.exe --db-host 192.168.1.100
 
 Optional flags:
 
+    --host 0.0.0.0    Interface to bind (default: 127.0.0.1)
     --port 5000       Change port (default: 5000)
     --debug           Enable debug output
 
@@ -48,6 +49,16 @@ FIRST USE
 
    Python: backend/seed.py  (requires Python)
    Or register manually via the web UI.
+
+
+DOCKER (recommended for local use)
+----------------------------------
+From the repository root:
+
+    docker compose up --build
+
+Then open http://localhost:5000. MongoDB data and uploaded documents
+are kept in Docker volumes / mounted folders.
 
 
 NOTES

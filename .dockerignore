@@ -1,0 +1,17 @@
+.git
+.gitignore
+.freebuff
+venv
+__pycache__
+**/__pycache__
+*.pyc
+.env
+.env.*
+build
+dist
+*.spec
+cse_app
+tests
+requests/*.zip
+.vscode
+.idea

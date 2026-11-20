@@ -1,7 +1,7 @@
 TRANSLATIONS = {
     "en": {
         # General
-        "app_name": "Global Service & Document Manager",
+        "app_name": "Document Manager",
         "app_tagline": "Manage your services and documents efficiently",
         "sign_in": "Sign In",
         "sign_out": "Sign Out",
@@ -277,7 +277,7 @@ TRANSLATIONS = {
         "linkedin": "LinkedIn",
     },
     "ar": {
-        "app_name": "Global Service & Document Manager",
+        "app_name": "Document Manager",
         "app_tagline": "إدارة خدماتك ومستنداتك بكفاءة",
         "sign_in": "تسجيل الدخول",
         "sign_out": "تسجيل الخروج",
@@ -542,7 +542,7 @@ TRANSLATIONS = {
         "linkedin": "لينكد إن",
     },
     "fr": {
-        "app_name": "Global Service & Document Manager",
+        "app_name": "Document Manager",
         "app_tagline": "Gérez vos services et documents efficacement",
         "sign_in": "Connexion",
         "sign_out": "Déconnexion",

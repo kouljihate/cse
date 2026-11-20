@@ -16,7 +16,7 @@ with app.app_context():
     password = hashpw("admin123".encode("utf-8"), gensalt()).decode("utf-8")
     admin = {
         "username": "admin",
-        "email": "admin@cse.com",
+        "email": "admin@docmanager.local",
         "password": password,
         "role": "admin",
         "full_name": "System Administrator",

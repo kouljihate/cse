@@ -205,17 +205,19 @@ def create_request():
     except IOError as e:
         return jsonify({"error": f"Failed to write file: {str(e)}"}), 500
 
+    # Version control is optional: the folder is already saved on disk, and in
+    # Docker the requests directory is a volume without a Git repository.
     ok, out, err = _run_git(["git", "add", os.path.join("requests", foldername)], PROJECT_ROOT)
     if not ok:
-        return jsonify({"error": f"Git add failed: {err}"}), 500
+        return jsonify({"ok": True, "foldername": foldername, "warning": f"Request saved but not committed: {err}"}), 201
 
     ok, out, err = _run_git(["git", "commit", "-m", f"Add request: {title}"], PROJECT_ROOT)
     if not ok:
-        return jsonify({"error": f"Git commit failed: {err}"}), 500
+        return jsonify({"ok": True, "foldername": foldername, "warning": f"Request saved but not committed: {err}"}), 201
 
     ok, out, err = _run_git(["git", "push"], PROJECT_ROOT)
     if not ok:
-        return jsonify({"warning": f"Folder saved and committed but push failed: {err}"}), 201
+        return jsonify({"ok": True, "foldername": foldername, "warning": f"Folder saved and committed but push failed: {err}"}), 201
 
     AuditService.log(
         action="create",

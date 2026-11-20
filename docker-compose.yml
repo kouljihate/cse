@@ -1,0 +1,40 @@
+# Local stack for Document Manager: the web app plus its MongoDB.
+#   docker compose up --build        -> http://localhost:5000
+#   docker compose exec app python seed.py   (optional default admin: admin / admin123)
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      args:
+        APP_VERSION: ${APP_VERSION:-2.0.0}
+    image: document-manager:${APP_VERSION:-2.0.0}
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_URI: mongodb://mongo:27017/cse
+      # Change this in any shared environment.
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-super-secret-key-change-in-production}
+      JWT_ACCESS_TOKEN_EXPIRES: ${JWT_ACCESS_TOKEN_EXPIRES:-86400}
+    ports:
+      - "${APP_PORT:-5000}:5000"
+    volumes:
+      # Uploaded PDFs and the request/screenshot folders survive rebuilds.
+      - ./backend/documents:/app/backend/documents
+      - ./requests:/app/requests
+
+volumes:
+  mongo_data:
