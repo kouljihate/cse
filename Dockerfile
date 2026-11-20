@@ -16,7 +16,7 @@ COPY requests ./requests
 WORKDIR /app/backend
 
 # Keep in sync with VERSION in backend/config.py
-ARG APP_VERSION=2.0.0
+ARG APP_VERSION=2.0.1
 LABEL org.opencontainers.image.title="Document Manager" \
       org.opencontainers.image.version="${APP_VERSION}"
 

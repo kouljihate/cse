@@ -4,6 +4,12 @@ All notable changes to Document Manager are recorded here.
 The version is defined once in `backend/config.py` (`VERSION`) and follows
 [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 
+## [2.0.1] - 2026-11-20
+
+### Added
+- `AGENTS.md` documenting the project rule that every change bumps the version,
+  updates this changelog and is tagged and pushed to GitHub.
+
 ## [2.0.0] - 2026-11-20
 
 ### Changed
