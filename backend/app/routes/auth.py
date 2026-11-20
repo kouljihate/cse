@@ -13,13 +13,18 @@ auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
+    db = get_db()
+
+    # Public self-registration never grants a privileged role: the very first
+    # account bootstraps the administrator, everyone after that is a customer.
+    # Admins can still create/upgrade users through /api/users.
+    data = {k: v for k, v in data.items() if k != "role"}
+    role = "admin" if db.users.count_documents({}) == 0 else "customer"
     try:
-        user_data = UserCreate(**data)
+        user_data = UserCreate(role=role, **data)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
-    db = get_db()
 
     if db.users.find_one({"$or": [{"username": user_data.username}, {"email": user_data.email}]}):
         return jsonify({"error": "Username or email already exists"}), 409
@@ -75,14 +80,14 @@ def login():
         description=f"User '{user.get('username')}' logged in from IP {ip}",
     )
 
-    resp = jsonify({
-        "access_token": access_token,
-        "user": UserResponse(**user).model_dump(by_alias=True),
-    })
+    # The token is only delivered as an HttpOnly cookie so page scripts can
+    # never read it; the JSON body carries the user profile alone.
+    resp = jsonify({"user": UserResponse(**user).model_dump(by_alias=True)})
     resp.set_cookie(
         "access_token", access_token,
         max_age=settings.jwt_access_token_expires,
-        httponly=False,
+        httponly=True,
+        secure=settings.cookie_secure,
         samesite="Lax",
         path="/",
     )
@@ -104,7 +109,9 @@ def logout():
         description=f"User '{user.get('username') if user else 'Unknown'}' logged out",
     )
 
-    return jsonify({"ok": True}), 200
+    resp = jsonify({"ok": True})
+    resp.delete_cookie("access_token", path="/", samesite="Lax")
+    return resp, 200
 
 
 @auth_bp.route("/profile", methods=["GET"])

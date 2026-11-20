@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from bson import ObjectId
+from bson.errors import InvalidId
 from werkzeug.utils import secure_filename
 from functools import wraps
 from app.database import get_db
@@ -18,6 +19,21 @@ ALLOWED_EXT = {"pdf"}
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
 os.makedirs(DOCUMENTS_DIR, exist_ok=True)
+
+
+def _oid(value):
+    try:
+        return ObjectId(value)
+    except (InvalidId, TypeError):
+        return None
+
+
+def _can_access(doc):
+    """Staff may read every document; a customer only their own."""
+    claims = get_jwt()
+    if claims.get("role") in ("admin", "employee"):
+        return True
+    return str(doc.get("customer_id")) == get_jwt_identity()
 
 
 def admin_required(f):
@@ -42,6 +58,9 @@ def list_documents():
         query["customer_id"] = ObjectId(customer_id)
     if service_id:
         query["service_id"] = ObjectId(service_id)
+    # Customers only ever see their own documents, whatever they ask for.
+    if get_jwt().get("role") not in ("admin", "employee"):
+        query["customer_id"] = ObjectId(get_jwt_identity())
 
     pipeline = [
         {"$match": query},
@@ -89,9 +108,11 @@ def list_documents():
 @jwt_required()
 def get_document(document_id):
     db = get_db()
-    doc = db.documents.find_one({"_id": ObjectId(document_id)})
+    doc = db.documents.find_one({"_id": _oid(document_id)})
     if not doc:
         return jsonify({"error": "Document not found"}), 404
+    if not _can_access(doc):
+        return jsonify({"error": "Access denied"}), 403
     if "_id" in doc and isinstance(doc["_id"], ObjectId):
         doc["_id"] = str(doc["_id"])
     for key in ("customer_id", "service_id", "uploaded_by"):
@@ -105,9 +126,11 @@ def get_document(document_id):
 def get_document_file(document_id):
     from flask import send_file
     db = get_db()
-    doc = db.documents.find_one({"_id": ObjectId(document_id)})
+    doc = db.documents.find_one({"_id": _oid(document_id)})
     if not doc:
         return jsonify({"error": "Document not found"}), 404
+    if not _can_access(doc):
+        return jsonify({"error": "Access denied"}), 403
     file_path = doc.get("stored_path")
     if not file_path or not os.path.isfile(file_path):
         return jsonify({"error": "File not found on disk"}), 404
@@ -198,7 +221,7 @@ def upload_document():
 @admin_required
 def delete_document(document_id):
     db = get_db()
-    doc = db.documents.find_one({"_id": ObjectId(document_id)})
+    doc = db.documents.find_one({"_id": _oid(document_id)})
     if not doc:
         return jsonify({"error": "Document not found"}), 404
 

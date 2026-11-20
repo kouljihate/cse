@@ -24,13 +24,6 @@
         <label class="form-label">{{ _('password') }}</label>
         <input type="password" name="password" class="form-control" required minlength="6">
     </div>
-    <div class="mb-3 text-start">
-        <label class="form-label">{{ _('role') }}</label>
-        <select name="role" class="form-select">
-            <option value="customer">{{ _('customer') }}</option>
-            <option value="employee">{{ _('employee') }}</option>
-        </select>
-    </div>
     <div id="registerError" class="alert alert-danger d-none"></div>
     <button type="submit" class="btn btn-cse w-100 btn-lg mb-3">
         <span id="registerBtnText">{{ _('register') }}</span>
@@ -63,7 +56,6 @@ async function handleRegister(e) {
             email: form.email.value,
             phone: form.phone.value,
             password: form.password.value,
-            role: form.role.value,
         }),
     });
     const data = await res.json();

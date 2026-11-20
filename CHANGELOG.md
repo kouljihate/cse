@@ -4,6 +4,36 @@ All notable changes to Document Manager are recorded here.
 The version is defined once in `backend/config.py` (`VERSION`) and follows
 [Semantic Versioning](https://semver.org/): MAJOR.MINOR.PATCH.
 
+## [2.1.0] - 2026-11-20
+
+Security release fixing the findings from the code review.
+
+### Security
+- Public registration can no longer create privileged accounts: the first
+  account bootstraps the administrator, every later sign-up is a customer.
+- The session token is delivered only as an `HttpOnly` cookie; page scripts no
+  longer receive or store it. `COOKIE_SECURE` turns on the `Secure` flag for
+  HTTPS deployments.
+- Every application page now requires a signed-in user instead of serving its
+  shell anonymously.
+- Customers can only list, read or download their own documents; staff and
+  admin access is unchanged. Invalid document ids return 404, not 500.
+- Logout clears the session cookie.
+
+### Added
+- `tests/` pytest suite (`requirements-dev.txt`) covering page guards,
+  registration roles, cookie flags and document ownership.
+- gunicorn serves the app in the Docker image instead of the Werkzeug
+  development server.
+
+### Changed
+- Bearer tokens are still accepted, so existing API clients keep working.
+- Docker image version/tag is 2.1.0.
+
+### Removed
+- Unused `weasyprint` dependency (reports are rendered with reportlab),
+  dropped from `requirements.txt` and the PyInstaller build.
+
 ## [2.0.1] - 2026-11-20
 
 ### Added

@@ -43,8 +43,8 @@ async function handleLogin(e) {
     btn.textContent = '{{ _('sign_in') }}';
     spinner.classList.add('d-none');
 
-    if (data.access_token) {
-        window.location.href = '/dashboard';
+    if (data && data.user) {
+        window.location.href = {{ next_url|tojson }} || '/dashboard';
     } else {
         error.textContent = data.error || '{{ _('invalid_credentials') }}';
         error.classList.remove('d-none');

@@ -541,7 +541,6 @@ document.addEventListener('DOMContentLoaded', checkCompanySetup);
 async function checkCompanySetup() {
     try {
         const res = await fetch('/api/company/settings', {
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
         });
         if (res.status === 404) {
             new bootstrap.Modal(document.getElementById('companySetupModal')).show();
@@ -555,7 +554,6 @@ async function openCompanySettings() {
     errorEl.classList.add('d-none');
     try {
         const res = await fetch('/api/company/settings', {
-            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('access_token') }
         });
         if (res.status === 404) {
             form.reset();

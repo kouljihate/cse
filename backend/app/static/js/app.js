@@ -1,11 +1,10 @@
 const API_BASE = '/api';
 
 async function apiRequest(url, options = {}) {
-    const token = localStorage.getItem('access_token');
     const isFormData = options.body instanceof FormData;
+    // The session token lives in an HttpOnly cookie, so no auth header is set.
     const headers = {
         ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options.headers,
     };
 
@@ -15,7 +14,7 @@ async function apiRequest(url, options = {}) {
     });
 
     if (res.status === 401) {
-        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
         window.location.href = '/login';
         return;
     }
@@ -32,8 +31,7 @@ async function login(username, password) {
         method: 'POST',
         body: JSON.stringify({ username, password }),
     });
-    if (data.access_token) {
-        localStorage.setItem('access_token', data.access_token);
+    if (data && data.user) {
         localStorage.setItem('user', JSON.stringify(data.user));
     }
     return data;
@@ -43,7 +41,6 @@ async function logout() {
     try {
         await apiRequest('/auth/logout', { method: 'POST' });
     } catch (_) {}
-    localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     window.location.href = '/login';
 }
@@ -57,7 +54,7 @@ function getUser() {
 }
 
 function isAuthenticated() {
-    return !!localStorage.getItem('access_token');
+    return !!localStorage.getItem('user');
 }
 
 function showToast(message, type = 'success') {
@@ -108,11 +105,10 @@ let socket = null;
 window.onlineUserIds = new Set();
 
 function initSocketIO() {
-    const token = localStorage.getItem('access_token');
-    if (!token || socket) return;
+    if (!isAuthenticated() || socket) return;
 
+    // The handshake carries the HttpOnly cookie; nothing to pass in the query.
     socket = io({
-        query: { token },
         transports: ['websocket', 'polling'],
     });
 

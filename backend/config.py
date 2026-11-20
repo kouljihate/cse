@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 
-VERSION = "2.0.1"
+VERSION = "2.1.0"
 
 
 class Settings(BaseSettings):
@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     mongo_host: str = ""
     jwt_secret_key: str = "super-secret-key-change-in-production"
     jwt_access_token_expires: int = 86400
+    # Set COOKIE_SECURE=true when the app is served over HTTPS.
+    cookie_secure: bool = False
 
     class Config:
         env_file = ".env"

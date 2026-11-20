@@ -36,11 +36,9 @@ pyinstaller ^
     --hidden-import simple_websocket ^
     --hidden-import engineio.async_drivers.threading ^
     --hidden-import pydantic_settings ^
-    --hidden-import weasyprint ^
     --hidden-import reportlab ^
     --hidden-import bcrypt ^
     --hidden-import email_validator ^
-    --collect-all weasyprint ^
     --collect-all reportlab ^
     backend\run.py
 

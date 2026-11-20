@@ -16,7 +16,7 @@ COPY requests ./requests
 WORKDIR /app/backend
 
 # Keep in sync with VERSION in backend/config.py
-ARG APP_VERSION=2.0.1
+ARG APP_VERSION=2.1.0
 LABEL org.opencontainers.image.title="Document Manager" \
       org.opencontainers.image.version="${APP_VERSION}"
 
@@ -25,4 +25,4 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health', timeout=4)"
 
-CMD ["python", "run.py", "--host", "0.0.0.0"]
+CMD ["gunicorn", "--worker-class", "gthread", "--workers", "1", "--threads", "100", "--timeout", "120", "--bind", "0.0.0.0:5000", "run:app"]

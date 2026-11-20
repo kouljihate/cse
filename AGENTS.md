@@ -37,6 +37,28 @@ bump and tag.
 - Optional default admin: `docker compose exec app python seed.py` (`admin` / `admin123`)
 - Version check: `curl http://localhost:5000/api/health` → `{"status":"ok","db":"connected","version":"..."}`
 
+## Tests
+
+Tests use pytest with an in-memory MongoDB (`mongomock`), so no database is
+needed. Inside a running stack:
+
+```bash
+docker compose exec -T app sh -c "pip install -q -r requirements-dev.txt"
+docker compose exec -T app python -m pytest -q tests
+```
+
+`requirements-dev.txt` holds the test-only dependencies and `tests/` is excluded
+from the Docker build context.
+
+## Auth model
+
+- The JWT session token is an `HttpOnly`, `SameSite=Lax` cookie; page scripts
+  never see it, and API calls need no `Authorization` header.
+- Every HTML page is wrapped in `login_required_page`; APIs use `@jwt_required()`.
+- The first account registered at `/register` becomes the admin; later public
+  registrations are always customers. Admins create staff via `/api/users`.
+- Do not expose tokens to `localStorage` or inline JSON responses again.
+
 ## Layout
 
 - `backend/` — Flask + Socket.IO backend, Jinja templates, static assets.

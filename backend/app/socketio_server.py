@@ -10,7 +10,9 @@ connected = {}
 
 @socketio.on("connect")
 def on_connect():
-    token = request.args.get("token")
+    # Browsers authenticate with the HttpOnly access_token cookie; non-browser
+    # clients may still pass ?token= explicitly.
+    token = request.cookies.get("access_token") or request.args.get("token")
     if not token:
         return False
     try:
